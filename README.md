@@ -29,7 +29,7 @@ BillingSystem/
 │   ├── css/
 │   ├── js/
 │   └── images/
-├── media/                 # User-uploaded files
+├── media/                
 ├── venv/                  # Python Virtual Environment
 ├── manage.py
 ├── db.sqlite3
