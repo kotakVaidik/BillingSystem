@@ -1,0 +1,215 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>.brand-panel { display: none !important; } .form-panel { justify-content: center; } </style>
+  <meta name="description" content="Admin login for Billing System — manage billing operations, invoices and business accounts." />
+  <title>Admin Login — Billing System</title>
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Shared Login Stylesheet -->
+  <link rel="stylesheet" href="{% static 'css/login.css' %}" />
+</head>
+<body>
+
+<div class="login-page">
+
+
+  <!-- ============================================================
+       RIGHT — Login Form Panel
+  ============================================================ -->
+  <main class="form-panel">
+    <div class="form-container">
+
+      <!-- Role Badge -->
+      <div class="role-badge" aria-label="Role: Admin">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        Administrator
+      </div>
+
+      <!-- Heading -->
+      <h2 class="form-heading">Welcome Back, Admin</h2>
+      <p class="form-subheading">Sign in to manage your billing operations.</p>
+
+      <div class="form-divider" aria-hidden="true"></div>
+
+      <!-- --------------------------------------------------------
+           Django Messages / Server-side Errors
+      -------------------------------------------------------- -->
+      {% if messages %}
+        {% for message in messages %}
+          {% if message.tags == 'error' %}
+          <div class="form-error-banner" role="alert" aria-live="assertive">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            {{ message }}
+          </div>
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+
+      {% if form.non_field_errors %}
+        <div class="form-error-banner" role="alert" aria-live="assertive">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          {{ form.non_field_errors|join:", " }}
+        </div>
+      {% endif %}
+
+      <!-- --------------------------------------------------------
+           Login Form
+      -------------------------------------------------------- -->
+      <form
+        id="loginForm"
+        method="POST"
+        action=""
+        novalidate
+        autocomplete="on"
+      >
+        {% csrf_token %}
+
+        <!-- Email / Username Field -->
+        <div class="login-form">
+
+          <div class="field-group">
+            <label class="field-label" for="id_email">
+              Email Address <span class="required" aria-hidden="true">*</span>
+            </label>
+            <div class="input-wrapper">
+              <span class="input-icon" aria-hidden="true">
+                <!-- Mail icon -->
+                <svg viewBox="0 0 24 24">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                  <polyline points="22,6 12,13 2,6"/>
+                </svg>
+              </span>
+              <input
+                type="email"
+                id="id_email"
+                name="email"
+                class="field-input{% if form.email.errors %} is-error{% endif %}"
+                placeholder="Enter your email address"
+                autocomplete="email"
+                required
+                aria-required="true"
+                aria-describedby="error_email"
+                value="{{ email_value|default:'' }}"
+              />
+            </div>
+            <span class="field-error" id="error_email" role="alert" aria-live="polite">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              <span></span>
+            </span>
+          </div>
+
+          <!-- Password Field -->
+          <div class="field-group">
+            <label class="field-label" for="id_password">
+              Password <span class="required" aria-hidden="true">*</span>
+            </label>
+            <div class="input-wrapper">
+              <span class="input-icon" aria-hidden="true">
+                <!-- Lock icon -->
+                <svg viewBox="0 0 24 24">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+              </span>
+              <input
+                type="password"
+                id="id_password"
+                name="password"
+                class="field-input field-input--pw{% if form.password.errors %} is-error{% endif %}"
+                placeholder="Enter your password"
+                autocomplete="current-password"
+                required
+                aria-required="true"
+                aria-describedby="error_password"
+              />
+              <button
+                class="password-toggle"
+                type="button"
+                data-target="id_password"
+                aria-label="Show password"
+                tabindex="0"
+              ></button>
+            </div>
+            <span class="field-error" id="error_password" role="alert" aria-live="polite">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              <span></span>
+            </span>
+          </div>
+
+          <!-- Remember Me + Forgot Password -->
+          <div class="form-options">
+            <label class="checkbox-label" for="id_remember_me">
+              <input
+                type="checkbox"
+                id="id_remember_me"
+                name="remember_me"
+              />
+              Remember me
+            </label>
+            <a href="{% url 'admin_password_reset' %}" class="forgot-link">
+              Forgot password?
+            </a>
+          </div>
+
+          <!-- Submit Button -->
+          <button type="submit" class="btn-primary" id="btn-admin-signin">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+              <polyline points="10 17 15 12 10 7"/>
+              <line x1="15" y1="12" x2="3" y2="12"/>
+            </svg>
+            Sign In
+          </button>
+
+        </div>
+        <!-- /.login-form -->
+
+      </form>
+
+      <!-- Role switch -->
+      <div class="role-switch">
+        Are you a Distributor?
+        <a href="{% url 'distributor_login' %}">Sign in here</a>
+      </div>
+
+      <p class="form-footer">
+        &copy; {% now "Y" %} Billing System &mdash; All rights reserved.
+      </p>
+
+    </div>
+    <!-- /.form-container -->
+  </main>
+
+</div>
+<!-- /.login-page -->
+
+<!-- Shared Login JS -->
+<script src="{% static 'js/login.js' %}"></script>
+</body>
+</html>

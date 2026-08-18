@@ -1,0 +1,723 @@
+/* ============================================================
+   Billing System — Shared Login Stylesheet
+   Professional, clean, light business aesthetic.
+   ============================================================ */
+
+/* ----------------------------------------------------------
+   CSS Variables / Design Tokens
+---------------------------------------------------------- */
+:root {
+  /* Accent (used sparingly — buttons, focus, links) */
+  --accent:          #1a6fc4;
+  --accent-hover:    #155da0;
+  --accent-light:    #e8f1fb;
+
+  /* Backgrounds */
+  --bg-page:         #f4f5f7;
+  --bg-panel-left:   #1e3a5f;      /* deep navy for the brand panel */
+  --bg-panel-right:  #ffffff;
+
+  /* Text */
+  --text-primary:    #1a1f2e;
+  --text-secondary:  #5a6278;
+  --text-muted:      #8b92a5;
+  --text-on-dark:    #ffffff;
+  --text-on-dark-sub:#b8c8df;
+
+  /* Form */
+  --input-bg:        #ffffff;
+  --input-border:    #d0d5df;
+  --input-border-focus: #1a6fc4;
+  --input-text:      #1a1f2e;
+  --input-placeholder: #a0a8bb;
+  --label-color:     #3d4460;
+
+  /* States */
+  --error-color:     #c0392b;
+  --error-bg:        #fff5f5;
+  --error-border:    #e8c0bb;
+  --success-color:   #1a7a4a;
+
+  /* Borders & Radii */
+  --radius-sm:       4px;
+  --radius-md:       8px;
+  --radius-lg:       12px;
+  --border-light:    #e2e6ef;
+
+  /* Shadows */
+  --shadow-card:     0 2px 12px rgba(0, 0, 0, 0.07), 0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-input:    0 1px 3px rgba(0, 0, 0, 0.04);
+
+  /* Typography */
+  --font-family:     'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-size-base:  15px;
+  --line-height:     1.6;
+
+  /* Spacing */
+  --space-xs:   4px;
+  --space-sm:   8px;
+  --space-md:   16px;
+  --space-lg:   24px;
+  --space-xl:   32px;
+  --space-2xl:  48px;
+}
+
+/* ----------------------------------------------------------
+   Reset & Base
+---------------------------------------------------------- */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: var(--font-size-base);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--bg-page);
+  color: var(--text-primary);
+  line-height: var(--line-height);
+  min-height: 100vh;
+  display: flex;
+  align-items: stretch;
+}
+
+/* ----------------------------------------------------------
+   Page Layout — Split Panel
+---------------------------------------------------------- */
+.login-page {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* LEFT BRAND PANEL */
+.brand-panel {
+  width: 42%;
+  flex-shrink: 0;
+  background-color: var(--bg-panel-left);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--space-2xl) var(--space-xl);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Subtle geometric background pattern */
+.brand-panel::before {
+  content: '';
+  position: absolute;
+  top: -80px;
+  right: -80px;
+  width: 340px;
+  height: 340px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.03);
+  pointer-events: none;
+}
+
+.brand-panel::after {
+  content: '';
+  position: absolute;
+  bottom: -60px;
+  left: -60px;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.03);
+  pointer-events: none;
+}
+
+.brand-content {
+  position: relative;
+  z-index: 1;
+  max-width: 380px;
+}
+
+/* Logo / App Name */
+.brand-logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+}
+
+.brand-logo-icon {
+  width: 44px;
+  height: 44px;
+  background-color: rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.brand-logo-icon svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.brand-logo-text {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-on-dark);
+  letter-spacing: 0.01em;
+}
+
+/* Brand Heading */
+.brand-heading {
+  font-size: 1.85rem;
+  font-weight: 700;
+  color: var(--text-on-dark);
+  line-height: 1.3;
+  margin-bottom: var(--space-md);
+  letter-spacing: -0.01em;
+}
+
+.brand-description {
+  font-size: 0.95rem;
+  color: var(--text-on-dark-sub);
+  line-height: 1.7;
+  margin-bottom: var(--space-2xl);
+}
+
+/* Feature List */
+.brand-features {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.brand-features li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  font-size: 0.9rem;
+  color: var(--text-on-dark-sub);
+}
+
+.feature-icon {
+  width: 20px;
+  height: 20px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.feature-icon svg {
+  width: 11px;
+  height: 11px;
+  stroke: #7fbfff;
+  stroke-width: 2.5;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Brand footer tagline */
+.brand-footer {
+  margin-top: auto;
+  padding-top: var(--space-2xl);
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.3);
+}
+
+/* RIGHT FORM PANEL */
+.form-panel {
+  flex: 1;
+  background-color: var(--bg-panel-right);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2xl) var(--space-xl);
+  overflow-y: auto;
+}
+
+.form-container {
+  width: 100%;
+  max-width: 420px;
+}
+
+/* ----------------------------------------------------------
+   Role Badge
+---------------------------------------------------------- */
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  background-color: var(--accent-light);
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-md);
+}
+
+.role-badge svg {
+  width: 12px;
+  height: 12px;
+  stroke: var(--accent);
+  fill: none;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Role-specific badge colors */
+.role-badge--distributor {
+  background-color: #e8f5ee;
+  color: #1a6a3e;
+}
+
+.role-badge--distributor svg {
+  stroke: #1a6a3e;
+}
+
+/* ----------------------------------------------------------
+   Form Heading
+---------------------------------------------------------- */
+.form-heading {
+  font-size: 1.55rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  margin-bottom: var(--space-xs);
+  line-height: 1.25;
+}
+
+.form-subheading {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-xl);
+}
+
+/* ----------------------------------------------------------
+   Form Divider
+---------------------------------------------------------- */
+.form-divider {
+  height: 1px;
+  background-color: var(--border-light);
+  margin-bottom: var(--space-xl);
+}
+
+/* ----------------------------------------------------------
+   Form Fields
+---------------------------------------------------------- */
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--label-color);
+  letter-spacing: 0.01em;
+}
+
+.field-label .required {
+  color: var(--error-color);
+  margin-left: 2px;
+}
+
+/* Input Wrapper (for icon + input) */
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon {
+  position: absolute;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+
+.input-icon svg {
+  width: 16px;
+  height: 16px;
+  stroke: var(--text-muted);
+  fill: none;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.field-input {
+  width: 100%;
+  height: 44px;
+  padding: 0 12px 0 40px;
+  background-color: var(--input-bg);
+  border: 1.5px solid var(--input-border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-family);
+  font-size: 0.9rem;
+  color: var(--input-text);
+  outline: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  box-shadow: var(--shadow-input);
+}
+
+.field-input--pw {
+  padding-right: 42px;
+}
+
+.field-input::placeholder {
+  color: var(--input-placeholder);
+}
+
+.field-input:focus {
+  border-color: var(--input-border-focus);
+  box-shadow: 0 0 0 3px rgba(26, 111, 196, 0.1);
+}
+
+/* Error state */
+.field-input.is-error {
+  border-color: var(--error-color);
+  box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.08);
+}
+
+/* Password Toggle Button */
+.password-toggle {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  transition: color 0.15s ease;
+}
+
+.password-toggle:hover {
+  color: var(--accent);
+}
+
+.password-toggle svg {
+  width: 17px;
+  height: 17px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Field Error Message */
+.field-error {
+  font-size: 0.8rem;
+  color: var(--error-color);
+  display: none;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.field-error.is-visible {
+  display: flex;
+}
+
+.field-error svg {
+  width: 13px;
+  height: 13px;
+  stroke: var(--error-color);
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+
+/* ----------------------------------------------------------
+   Remember Me & Forgot Password Row
+---------------------------------------------------------- */
+.form-options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: -4px;
+}
+
+/* Custom Checkbox */
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.checkbox-label input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 17px;
+  height: 17px;
+  border: 1.5px solid var(--input-border);
+  border-radius: 4px;
+  background-color: var(--input-bg);
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+.checkbox-label input[type="checkbox"]:checked {
+  background-color: var(--accent);
+  border-color: var(--accent);
+}
+
+.checkbox-label input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 5px;
+  width: 5px;
+  height: 9px;
+  border: 2px solid #ffffff;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg);
+}
+
+.checkbox-label input[type="checkbox"]:focus-visible {
+  box-shadow: 0 0 0 3px rgba(26, 111, 196, 0.18);
+}
+
+/* Forgot Password Link */
+.forgot-link {
+  font-size: 0.875rem;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.15s ease;
+}
+
+.forgot-link:hover {
+  color: var(--accent-hover);
+  text-decoration: underline;
+}
+
+/* ----------------------------------------------------------
+   Server Error Banner
+---------------------------------------------------------- */
+.form-error-banner {
+  background-color: var(--error-bg);
+  border: 1px solid var(--error-border);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  font-size: 0.875rem;
+  color: var(--error-color);
+}
+
+.form-error-banner svg {
+  width: 16px;
+  height: 16px;
+  stroke: var(--error-color);
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* ----------------------------------------------------------
+   Primary Button
+---------------------------------------------------------- */
+.btn-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  width: 100%;
+  height: 46px;
+  background-color: var(--accent);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: var(--font-family);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  transition: background-color 0.18s ease, transform 0.1s ease;
+  margin-top: 4px;
+}
+
+.btn-primary:hover {
+  background-color: var(--accent-hover);
+}
+
+.btn-primary:active {
+  transform: translateY(1px);
+}
+
+.btn-primary:focus-visible {
+  box-shadow: 0 0 0 3px rgba(26, 111, 196, 0.25);
+  outline: none;
+}
+
+.btn-primary svg {
+  width: 16px;
+  height: 16px;
+  stroke: #ffffff;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Distributor button — teal/green accent */
+.btn-primary--distributor {
+  background-color: #1a7a4a;
+}
+
+.btn-primary--distributor:hover {
+  background-color: #15643d;
+}
+
+.btn-primary--distributor:focus-visible {
+  box-shadow: 0 0 0 3px rgba(26, 122, 74, 0.25);
+}
+
+/* ----------------------------------------------------------
+   Role Switch Link
+---------------------------------------------------------- */
+.role-switch {
+  margin-top: var(--space-xl);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--border-light);
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.role-switch a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.15s ease;
+}
+
+.role-switch a:hover {
+  color: var(--accent-hover);
+  text-decoration: underline;
+}
+
+/* ----------------------------------------------------------
+   Form Footer (copyright)
+---------------------------------------------------------- */
+.form-footer {
+  margin-top: var(--space-xl);
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+/* ----------------------------------------------------------
+   Responsive — Tablet
+---------------------------------------------------------- */
+@media (max-width: 900px) {
+  .brand-panel {
+    width: 38%;
+    padding: var(--space-xl) var(--space-lg);
+  }
+
+  .brand-heading {
+    font-size: 1.5rem;
+  }
+}
+
+/* ----------------------------------------------------------
+   Responsive — Mobile (640px and below)
+   Stack panels vertically; brand shrinks to compact header
+---------------------------------------------------------- */
+@media (max-width: 640px) {
+  body {
+    align-items: flex-start;
+  }
+
+  .login-page {
+    flex-direction: column;
+  }
+
+  .brand-panel {
+    width: 100%;
+    padding: var(--space-lg) var(--space-md);
+    flex-direction: row;
+    align-items: center;
+    min-height: auto;
+  }
+
+  .brand-panel::before,
+  .brand-panel::after {
+    display: none;
+  }
+
+  .brand-content {
+    max-width: 100%;
+  }
+
+  .brand-heading,
+  .brand-description,
+  .brand-features,
+  .brand-footer {
+    display: none;
+  }
+
+  .brand-logo {
+    margin-bottom: 0;
+  }
+
+  .form-panel {
+    padding: var(--space-xl) var(--space-md);
+    justify-content: flex-start;
+  }
+
+  .form-container {
+    max-width: 100%;
+  }
+
+  .form-heading {
+    font-size: 1.35rem;
+  }
+}
