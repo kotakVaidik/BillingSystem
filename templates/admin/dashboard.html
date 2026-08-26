@@ -2,13 +2,800 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin Dashboard — Billing System</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin · Advance Billing System with QR</title>
+<link rel="stylesheet" href="{% static 'css/app.css' %}" />
 </head>
 <body>
-  <h1>Admin Dashboard</h1>
-  <p>Welcome, {{ request.user.username }}.</p>
-  <a href="{% url 'logout' %}">Sign Out</a>
+
+<div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar(false)"></div>
+
+<div class="app-shell">
+
+  <!-- ===================== SIDEBAR ===================== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-head">
+      <div class="brand">
+        <span class="qr-mark brand-mark"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span>
+        <div class="brand-text">
+          <strong>Advance Billing</strong>
+          <span>Admin Console</span>
+        </div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="sidebar-section-label">Overview</div>
+      <a class="nav-item active" onclick="showView('view-dashboard', this)">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Dashboard
+      </a>
+
+      <div class="sidebar-section-label">Network</div>
+      <a class="nav-item" onclick="showView('view-distributors', this)">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17.5" cy="9" r="2.4"/><path d="M15.7 12.6c2.6.2 4.8 2.3 4.8 5.1"/></svg>
+        Distributors
+        <span class="count">42</span>
+      </a>
+
+      <div class="sidebar-section-label">Money</div>
+      <a class="nav-item" onclick="showView('view-billing', this)">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 3h10a1 1 0 0 1 1 1v16l-3-2-2 2-2-2-2 2-2-2-1 1V4a1 1 0 0 1 1-1z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>
+        Billing &amp; Invoices
+      </a>
+      <a class="nav-item" onclick="showView('view-qr', this)">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM19 14h2v2h-2zM14 19h2v2h-2zM19 19h2v2h-2z"/></svg>
+        QR Payments
+      </a>
+      <a class="nav-item" onclick="showView('view-reports', this)">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V9M11 19V4M18 19v-7"/></svg>
+        Reports
+      </a>
+
+      <div class="sidebar-section-label">Workspace</div>
+      <a class="nav-item" onclick="showView('view-settings', this)">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V19a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H4a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H10a1.7 1.7 0 0 0 1-1.5V4a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V10a1.7 1.7 0 0 0 1.5 1H20a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+        Settings
+      </a>
+    </nav>
+
+    <div class="sidebar-foot">
+      <div class="role-switch">
+        <span class="qr-mark" style="width:16px;height:16px;"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span>
+        <span>Viewing as Admin · <a href="{% url 'portal_home' %}">Switch</a></span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===================== MAIN ===================== -->
+  <div class="main">
+    <header class="topbar">
+      <button class="menu-toggle" onclick="toggleSidebar()" aria-label="Toggle menu">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+      <div>
+        <div class="page-eyebrow" id="pageEyebrow">Overview</div>
+        <h1 class="page-title" id="pageTitle">Dashboard</h1>
+      </div>
+      <div class="searchbox">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input type="text" placeholder="Search distributors, invoices, IDs…">
+      </div>
+      <div class="topbar-actions">
+        <button class="icon-btn" aria-label="Notifications">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+          <span class="dot"></span>
+        </button>
+        <div class="user-chip" onclick="window.location.href='{% url "logout" %}'" title="Click to Sign Out">
+          <span class="avatar">
+            {% with name=request.user.get_full_name|default:request.user.username %}
+              {{ name|slice:":1"|upper }}
+            {% endwith %}
+          </span>
+          <span class="who">
+            <strong>{{ request.user.get_full_name|default:request.user.username }}</strong>
+            <span>Super Admin (Sign Out)</span>
+          </span>
+        </div>
+      </div>
+    </header>
+
+    <main class="content">
+
+      <!-- ===================== DASHBOARD ===================== -->
+      <section class="view active" id="view-dashboard">
+        <div class="section-head">
+          <div>
+            <h2>Good morning, {{ request.user.first_name|default:request.user.username }}</h2>
+            <p>Here's how the network is performing today, {% now "j F Y" %}.</p>
+          </div>
+          <button class="btn btn-primary" onclick="openModal('modalAddDistributor')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+            Add Distributor
+          </button>
+        </div>
+
+        <div class="grid cols-4">
+          <div class="stat-card accent-teal">
+            <div class="label">Revenue collected</div>
+            <div class="value">₹18,42,600</div>
+            <div class="delta up">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 18L18 6M18 6H9M18 6v9"/></svg>
+              12.4% <span class="mut">vs last month</span>
+            </div>
+          </div>
+          <div class="stat-card accent-ink">
+            <div class="label">Active distributors</div>
+            <div class="value">42</div>
+            <div class="delta up">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 18L18 6M18 6H9M18 6v9"/></svg>
+              3 new <span class="mut">this month</span>
+            </div>
+          </div>
+          <div class="stat-card accent-amber">
+            <div class="label">Pending collections</div>
+            <div class="value">₹2,14,300</div>
+            <div class="delta down">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 6l12 12M18 6H9M18 6v9"/></svg>
+              18 invoices <span class="mut">overdue</span>
+            </div>
+          </div>
+          <div class="stat-card accent-teal">
+            <div class="label">QR payments today</div>
+            <div class="value">126</div>
+            <div class="delta up">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 18L18 6M18 6H9M18 6v9"/></svg>
+              98% <span class="mut">scan success rate</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid span-2-1 mt-24">
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h3>Collections, last 7 days</h3>
+                <div class="sub">QR-verified payments received per day</div>
+              </div>
+              <span class="badge info">Live</span>
+            </div>
+            <div class="card-pad">
+              <div class="bars" id="revenueBars"></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <h3>Collection rate</h3>
+            </div>
+            <div class="card-pad flex items-center gap-12" style="flex-direction:column;">
+              <div class="ring" style="background: conic-gradient(var(--teal) 0% 89.6%, var(--line) 89.6% 100%);">
+                <div class="ring-inner"><strong>89.6%</strong><span>on time</span></div>
+              </div>
+              <p class="text-muted" style="font-size:12px; text-align:center;">Of ₹18.42L billed this month, ₹16.51L has been collected via QR on or before the due date.</p>
+              <div class="flex justify-between" style="width:100%; font-size:12px; margin-top:6px;">
+                <span class="flex items-center gap-8"><span style="width:8px;height:8px;border-radius:50%;background:var(--teal);display:inline-block;"></span>On time</span>
+                <span class="text-muted">89.6%</span>
+              </div>
+              <div class="flex justify-between" style="width:100%; font-size:12px;">
+                <span class="flex items-center gap-8"><span style="width:8px;height:8px;border-radius:50%;background:var(--line);display:inline-block;"></span>Overdue</span>
+                <span class="text-muted">10.4%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid span-2-1 mt-24">
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h3>Top distributors this month</h3>
+                <div class="sub">Ranked by collections</div>
+              </div>
+              <a class="btn btn-ghost btn-sm" onclick="showView('view-distributors', document.querySelectorAll('.nav-item')[1])">View all</a>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Distributor</th><th>Region</th><th>Invoices</th><th>Collected</th></tr></thead>
+                <tbody id="topDistributorsBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><h3>Recent activity</h3></div>
+            <div class="card-pad">
+              <div class="timeline" id="activityTimeline"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== DISTRIBUTORS ===================== -->
+      <section class="view" id="view-distributors">
+        <div class="section-head">
+          <div>
+            <h2>Distributors</h2>
+            <p>Onboard and manage everyone who bills through your network.</p>
+          </div>
+          <button class="btn btn-primary" onclick="openModal('modalAddDistributor')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+            Add Distributor
+          </button>
+        </div>
+
+        <div class="card">
+          <div class="table-toolbar">
+            <input type="text" placeholder="Search by name, region or ID…" style="flex:1; min-width:200px; padding:9px 14px; border-radius:999px; border:1px solid var(--line); font-size:13px;" oninput="filterTable(this, 'distributorsBody')">
+            <div data-filter-group="dist" class="flex gap-8" style="margin-left:auto;">
+              <button class="chip-filter active" data-value="all" onclick="applyChipFilter(this,'[data-filter-group=dist]','distributorsBody','status')">All</button>
+              <button class="chip-filter" data-value="active" onclick="applyChipFilter(this,'[data-filter-group=dist]','distributorsBody','status')">Active</button>
+              <button class="chip-filter" data-value="pending" onclick="applyChipFilter(this,'[data-filter-group=dist]','distributorsBody','status')">Pending</button>
+              <button class="chip-filter" data-value="inactive" onclick="applyChipFilter(this,'[data-filter-group=dist]','distributorsBody','status')">Inactive</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Distributor</th><th>Region</th><th>Outstanding</th><th>Bills / mo</th><th>Status</th><th></th></tr>
+              </thead>
+              <tbody id="distributorsBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== BILLING & INVOICES ===================== -->
+      <section class="view" id="view-billing">
+        <div class="section-head">
+          <div>
+            <h2>Billing &amp; Invoices</h2>
+            <p>Every invoice raised across your distributors, with its QR settlement status.</p>
+          </div>
+          <button class="btn btn-primary" onclick="openModal('modalNewInvoice')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+            Raise Invoice
+          </button>
+        </div>
+
+        <div class="card">
+          <div class="table-toolbar">
+            <input type="text" placeholder="Search invoice number or customer…" style="flex:1; min-width:200px; padding:9px 14px; border-radius:999px; border:1px solid var(--line); font-size:13px;" oninput="filterTable(this, 'invoicesBody')">
+            <div data-filter-group="inv" class="flex gap-8" style="margin-left:auto;">
+              <button class="chip-filter active" data-value="all" onclick="applyChipFilter(this,'[data-filter-group=inv]','invoicesBody','status')">All</button>
+              <button class="chip-filter" data-value="paid" onclick="applyChipFilter(this,'[data-filter-group=inv]','invoicesBody','status')">Paid</button>
+              <button class="chip-filter" data-value="pending" onclick="applyChipFilter(this,'[data-filter-group=inv]','invoicesBody','status')">Pending</button>
+              <button class="chip-filter" data-value="overdue" onclick="applyChipFilter(this,'[data-filter-group=inv]','invoicesBody','status')">Overdue</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Invoice</th><th>Distributor</th><th>Customer</th><th>Amount</th><th>Due</th><th>Status</th><th></th></tr>
+              </thead>
+              <tbody id="invoicesBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== QR PAYMENTS ===================== -->
+      <section class="view" id="view-qr">
+        <div class="section-head">
+          <div>
+            <h2>QR Payments</h2>
+            <p>Every scan-to-pay confirmation, verified against its invoice automatically.</p>
+          </div>
+          <span class="badge success">Gateway connected</span>
+        </div>
+
+        <div class="grid cols-3">
+          <div class="stat-card accent-teal">
+            <div class="label">Scans today</div>
+            <div class="value">126</div>
+          </div>
+          <div class="stat-card accent-ink">
+            <div class="label">Avg. settlement time</div>
+            <div class="value">4.2s</div>
+          </div>
+          <div class="stat-card accent-danger">
+            <div class="label">Failed scans</div>
+            <div class="value">3</div>
+          </div>
+        </div>
+
+        <div class="card mt-24">
+          <div class="card-head"><h3>Payment log</h3></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Reference</th><th>Invoice</th><th>Distributor</th><th>Amount</th><th>Scanned at</th><th>Result</th></tr></thead>
+              <tbody id="qrLogBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== REPORTS ===================== -->
+      <section class="view" id="view-reports">
+        <div class="section-head">
+          <div>
+            <h2>Reports</h2>
+            <p>Summaries ready to export for finance and leadership.</p>
+          </div>
+        </div>
+
+        <div class="grid cols-3">
+          <div class="card card-pad">
+            <div class="label" style="font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;">This month</div>
+            <div class="value" style="font-family:var(--font-display);font-size:24px;margin-top:8px;">₹18,42,600</div>
+            <p class="text-muted" style="font-size:12px;margin-top:6px;">Total billed across 42 distributors</p>
+          </div>
+          <div class="card card-pad">
+            <div class="label" style="font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;">Outstanding</div>
+            <div class="value" style="font-family:var(--font-display);font-size:24px;margin-top:8px;color:var(--amber);">₹2,14,300</div>
+            <p class="text-muted" style="font-size:12px;margin-top:6px;">Across 18 overdue invoices</p>
+          </div>
+          <div class="card card-pad">
+            <div class="label" style="font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;">New distributors</div>
+            <div class="value" style="font-family:var(--font-display);font-size:24px;margin-top:8px;color:var(--teal-dark);">3</div>
+            <p class="text-muted" style="font-size:12px;margin-top:6px;">Onboarded in the last 30 days</p>
+          </div>
+        </div>
+
+        <div class="card mt-24">
+          <div class="card-head">
+            <h3>Available reports</h3>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Report</th><th>Period</th><th>Format</th><th></th></tr></thead>
+              <tbody>
+                <tr>
+                  <td class="cell-main">Monthly billing summary</td>
+                  <td class="cell-mono">Aug 2026</td>
+                  <td><span class="badge neutral">PDF</span></td>
+                  <td class="row-actions"><button class="btn btn-ghost btn-sm" onclick="showToast('Report download started')">Download</button></td>
+                </tr>
+                <tr>
+                  <td class="cell-main">Distributor-wise collections</td>
+                  <td class="cell-mono">Aug 2026</td>
+                  <td><span class="badge neutral">XLSX</span></td>
+                  <td class="row-actions"><button class="btn btn-ghost btn-sm" onclick="showToast('Report download started')">Download</button></td>
+                </tr>
+                <tr>
+                  <td class="cell-main">Overdue &amp; ageing report</td>
+                  <td class="cell-mono">As of today</td>
+                  <td><span class="badge neutral">PDF</span></td>
+                  <td class="row-actions"><button class="btn btn-ghost btn-sm" onclick="showToast('Report download started')">Download</button></td>
+                </tr>
+                <tr>
+                  <td class="cell-main">QR settlement audit trail</td>
+                  <td class="cell-mono">Aug 2026</td>
+                  <td><span class="badge neutral">CSV</span></td>
+                  <td class="row-actions"><button class="btn btn-ghost btn-sm" onclick="showToast('Report download started')">Download</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== SETTINGS ===================== -->
+      <section class="view" id="view-settings">
+        <div class="section-head">
+          <div>
+            <h2>Settings</h2>
+            <p>Business details used on every invoice and QR receipt.</p>
+          </div>
+        </div>
+
+        <div class="grid span-2-1">
+          <div class="card card-pad">
+            <h3 class="mt-0" style="margin-bottom:16px;">Business profile</h3>
+            <div class="field-row">
+              <div class="field"><label>Business name</label><input type="text" value="Anandi Traders Pvt. Ltd."></div>
+              <div class="field"><label>GSTIN</label><input type="text" value="24AACCA1234M1Z5"></div>
+            </div>
+            <div class="field"><label>Registered address</label><textarea>4th Floor, Shivalik Plaza, S.G. Highway, Ahmedabad, Gujarat 380015</textarea></div>
+            <div class="field-row">
+              <div class="field"><label>Support email</label><input type="email" value="accounts@anandi-traders.in"></div>
+              <div class="field"><label>Support phone</label><input type="tel" value="+91 98765 43210"></div>
+            </div>
+            <button class="btn btn-primary" onclick="showToast('Business profile saved', 'success')">Save changes</button>
+          </div>
+
+          <div class="card card-pad">
+            <h3 class="mt-0" style="margin-bottom:16px;">QR &amp; payments</h3>
+            <div class="field"><label>Default payment gateway</label>
+              <select><option>UPI — Static QR</option><option>UPI — Dynamic QR</option><option>Bank transfer reference</option></select>
+            </div>
+            <div class="field"><label>Invoice due period</label>
+              <select><option>7 days</option><option selected>15 days</option><option>30 days</option></select>
+            </div>
+            <div class="field"><label>Overdue reminder</label>
+              <select><option>Off</option><option selected>Every 3 days</option><option>Weekly</option></select>
+            </div>
+            <div class="hint">Changes apply to invoices raised after saving — existing QR codes are not regenerated.</div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- ===================== MODAL: ADD DISTRIBUTOR ===================== -->
+<div class="modal-overlay" id="modalAddDistributor">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Add a distributor</h3>
+      <button class="modal-close" onclick="closeModal('modalAddDistributor')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-row">
+        <div class="field"><label>Full name</label><input type="text" placeholder="e.g. Karan Mehta"></div>
+        <div class="field"><label>Phone number</label><input type="tel" placeholder="+91"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Region</label>
+          <select><option>Ahmedabad</option><option>Surat</option><option>Vadodara</option><option>Rajkot</option></select>
+        </div>
+        <div class="field"><label>Monthly bill target</label>
+          <div class="field-addon"><span class="prefix">₹</span><input type="text" placeholder="1,50,000"></div>
+        </div>
+      </div>
+      <div class="field"><label>Email address</label><input type="email" placeholder="name@business.com"></div>
+      <div class="hint">The distributor receives login credentials and a starter QR kit by email.</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('modalAddDistributor')">Cancel</button>
+      <button class="btn btn-primary" onclick="closeModal('modalAddDistributor'); showToast('Distributor added successfully', 'success')">Add distributor</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: NEW INVOICE ===================== -->
+<div class="modal-overlay" id="modalNewInvoice">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Raise an invoice</h3>
+      <button class="modal-close" onclick="closeModal('modalNewInvoice')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-row">
+        <div class="field"><label>Distributor</label>
+          <select><option>Karan Mehta — Ahmedabad</option><option>Priya Shah — Surat</option><option>Amit Rana — Vadodara</option></select>
+        </div>
+        <div class="field"><label>Customer name</label><input type="text" placeholder="e.g. Shree Umiya Store"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Amount</label><div class="field-addon"><span class="prefix">₹</span><input type="text" placeholder="12,500"></div></div>
+        <div class="field"><label>Due date</label><input type="date"></div>
+      </div>
+      <div class="field"><label>Note (appears on the receipt)</label><textarea placeholder="e.g. August stock replenishment"></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('modalNewInvoice')">Cancel</button>
+      <button class="btn btn-primary" onclick="closeModal('modalNewInvoice'); showToast('Invoice raised and QR generated', 'success')">Generate invoice &amp; QR</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: VIEW INVOICE / QR ===================== -->
+<div class="modal-overlay" id="modalViewInvoice">
+  <div class="modal modal-lg">
+    <div class="modal-head">
+      <h3>Invoice <span id="viewInvNumber" class="text-mono"></span></h3>
+      <button class="modal-close" onclick="closeModal('modalViewInvoice')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="grid cols-2" style="align-items:start;">
+        <div class="receipt">
+          <div class="flex justify-between items-center">
+            <div>
+              <div class="page-eyebrow">Billed to</div>
+              <strong id="viewInvCustomer" style="font-family:var(--font-display); font-size:16px;"></strong>
+            </div>
+            <span class="badge" id="viewInvStatus"></span>
+          </div>
+          <div class="receipt-divider"></div>
+          <div class="receipt-row"><span class="k">Distributor</span><span class="v" id="viewInvDist"></span></div>
+          <div class="receipt-row"><span class="k">Invoice date</span><span class="v" id="viewInvDate"></span></div>
+          <div class="receipt-row"><span class="k">Due date</span><span class="v" id="viewInvDue"></span></div>
+          <div class="receipt-total"><span class="k">Amount due</span><span class="v" id="viewInvAmount"></span></div>
+        </div>
+        <div class="qr-box">
+          <span class="stamp">Scan to settle</span>
+          <div class="qr-canvas-wrap" id="qrCanvasWrap"></div>
+          <div class="qr-caption" id="viewInvRef"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="showToast('Reminder sent to distributor')">Send reminder</button>
+      <button class="btn btn-primary" onclick="closeModal('modalViewInvoice')">Done</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-stack" id="toastStack"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+function toggleSidebar(force){
+  const sb = document.getElementById('sidebar');
+  const bd = document.getElementById('sidebarBackdrop');
+  const isOpen = force !== undefined ? force : !sb.classList.contains('open');
+  sb.classList.toggle('open', isOpen);
+  bd.classList.toggle('open', isOpen);
+}
+
+function openModal(id){
+  document.getElementById(id).classList.add('open');
+}
+function closeModal(id){
+  document.getElementById(id).classList.remove('open');
+}
+document.addEventListener('click', (e) => {
+  if(e.target.classList && e.target.classList.contains('modal-overlay')){
+    e.target.classList.remove('open');
+  }
+});
+document.addEventListener('keydown', (e) => {
+  if(e.key === 'Escape'){
+    document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
+  }
+});
+
+function showToast(message, type){
+  const stack = document.getElementById('toastStack');
+  if(!stack) return;
+  const el = document.createElement('div');
+  el.className = 'toast' + (type ? ' ' + type : '');
+  el.innerHTML = `<span class="qr-mark" style="width:16px;height:16px;">
+      <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+    </span><span>${message}</span>`;
+  stack.appendChild(el);
+  setTimeout(() => {
+    el.style.transition = 'opacity 0.3s ease';
+    el.style.opacity = '0';
+    setTimeout(() => el.remove(), 300);
+  }, 3200);
+}
+
+function fmtCurrency(n){
+  return '₹' + Number(n).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+}
+
+function fmtDate(d){
+  return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function initials(name){
+  return name.split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase();
+}
+
+function showView(viewId, navEl){
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(viewId).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if(navEl) navEl.classList.add('active');
+  const titleMap = window.__pageTitles || {};
+  if(titleMap[viewId]){
+    document.getElementById('pageTitle').textContent = titleMap[viewId].title;
+    document.getElementById('pageEyebrow').textContent = titleMap[viewId].eyebrow;
+  }
+  window.scrollTo({top:0, behavior:'smooth'});
+  toggleSidebar(false);
+}
+
+function filterTable(inputEl, tableBodyId){
+  const q = inputEl.value.trim().toLowerCase();
+  const rows = document.querySelectorAll('#' + tableBodyId + ' tr');
+  rows.forEach(r => {
+    r.style.display = r.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+function applyChipFilter(chip, groupSelector, tableBodyId, attr){
+  document.querySelectorAll(groupSelector + ' .chip-filter').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  const val = chip.dataset.value;
+  document.querySelectorAll('#' + tableBodyId + ' tr').forEach(r => {
+    r.style.display = (val === 'all' || r.dataset[attr] === val) ? '' : 'none';
+  });
+}
+</script>
+<script>
+window.__pageTitles = {
+  'view-dashboard':    { eyebrow: 'Overview',   title: 'Dashboard' },
+  'view-distributors': { eyebrow: 'Network',    title: 'Distributors' },
+  'view-billing':      { eyebrow: 'Money',      title: 'Billing & Invoices' },
+  'view-qr':           { eyebrow: 'Money',      title: 'QR Payments' },
+  'view-reports':      { eyebrow: 'Money',      title: 'Reports' },
+  'view-settings':     { eyebrow: 'Workspace',  title: 'Settings' },
+};
+
+const DISTRIBUTORS = [
+  { name: 'Karan Mehta',  region: 'Ahmedabad', outstanding: 18500, billsPerMonth: 34, status: 'active' },
+  { name: 'Priya Shah',   region: 'Surat',      outstanding: 0,     billsPerMonth: 51, status: 'active' },
+  { name: 'Amit Rana',    region: 'Vadodara',   outstanding: 42300, billsPerMonth: 22, status: 'active' },
+  { name: 'Neha Joshi',   region: 'Rajkot',     outstanding: 6200,  billsPerMonth: 18, status: 'pending' },
+  { name: 'Sanjay Patel', region: 'Ahmedabad',  outstanding: 0,     billsPerMonth: 29, status: 'active' },
+  { name: 'Divya Nair',   region: 'Bhavnagar',  outstanding: 15800, billsPerMonth: 12, status: 'inactive' },
+  { name: 'Rohit Iyer',   region: 'Surat',      outstanding: 9400,  billsPerMonth: 26, status: 'active' },
+];
+
+const INVOICES = [
+  { number: 'INV-3021', distributor: 'Karan Mehta', customer: 'Shree Umiya Store', amount: 12500, due: '02 Sep 2026', status: 'pending' },
+  { number: 'INV-3020', distributor: 'Priya Shah',  customer: 'Sundar Kirana',     amount: 8200,  due: '28 Aug 2026', status: 'paid' },
+  { number: 'INV-3019', distributor: 'Amit Rana',   customer: 'Balaji Traders',    amount: 21300, due: '20 Aug 2026', status: 'overdue' },
+  { number: 'INV-3018', distributor: 'Sanjay Patel',customer: 'New India Mart',    amount: 5400,  due: '30 Aug 2026', status: 'paid' },
+  { number: 'INV-3017', distributor: 'Neha Joshi',  customer: 'City Wholesale',    amount: 15600, due: '18 Aug 2026', status: 'overdue' },
+  { number: 'INV-3016', distributor: 'Rohit Iyer',  customer: 'Om Provisions',     amount: 9400,  due: '05 Sep 2026', status: 'pending' },
+];
+
+const QR_LOG = [
+  { ref: 'QR-88213', invoice: 'INV-3020', distributor: 'Priya Shah',  amount: 8200, time: '26 Aug, 09:14 AM', result: 'success' },
+  { ref: 'QR-88212', invoice: 'INV-3018', distributor: 'Sanjay Patel',amount: 5400, time: '26 Aug, 08:52 AM', result: 'success' },
+  { ref: 'QR-88211', invoice: 'INV-3011', distributor: 'Karan Mehta', amount: 3100, time: '25 Aug, 06:40 PM', result: 'failed' },
+  { ref: 'QR-88210', invoice: 'INV-3009', distributor: 'Rohit Iyer',  amount: 7600, time: '25 Aug, 04:22 PM', result: 'success' },
+];
+
+const ACTIVITY = [
+  { title: 'Priya Shah collected ₹8,200 via QR', meta: 'INV-3020 · 9 minutes ago' },
+  { title: 'Neha Joshi added as a new distributor', meta: 'Rajkot region · 2 hours ago' },
+  { title: 'INV-3019 crossed its due date', meta: 'Amit Rana · 4 hours ago' },
+  { title: 'Monthly billing report generated', meta: 'August 2026 · yesterday' },
+];
+
+const badgeFor = (status) => {
+  const map = {
+    active: 'success', paid: 'success', success: 'success',
+    pending: 'warning', inactive: 'neutral',
+    overdue: 'danger', failed: 'danger',
+  };
+  return map[status] || 'neutral';
+};
+
+function renderDistributors(){
+  const body = document.getElementById('distributorsBody');
+  if(!body) return;
+  body.innerHTML = DISTRIBUTORS.map(d => `
+    <tr data-status="${d.status}">
+      <td>
+        <div class="name-cell">
+          <div class="avatar-sm">${initials(d.name)}</div>
+          <div><div class="cell-main">${d.name}</div><div class="cell-sub">ID DST-${1000 + DISTRIBUTORS.indexOf(d)}</div></div>
+        </div>
+      </td>
+      <td>${d.region}</td>
+      <td class="${d.outstanding ? 'cell-amount' : 'text-muted'}">${d.outstanding ? fmtCurrency(d.outstanding) : '—'}</td>
+      <td class="cell-mono">${d.billsPerMonth}</td>
+      <td><span class="badge ${badgeFor(d.status)}">${d.status[0].toUpperCase() + d.status.slice(1)}</span></td>
+      <td class="row-actions">
+        <button class="icon-action" title="Edit" onclick="showToast('Edit distributor coming soon')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        </button>
+        <button class="icon-action" title="Message" onclick="showToast('Message sent to distributor')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function renderTopDistributors(){
+  const el = document.getElementById('topDistributorsBody');
+  if(!el) return;
+  const top = [...DISTRIBUTORS].sort((a,b) => b.billsPerMonth - a.billsPerMonth).slice(0,4);
+  el.innerHTML = top.map(d => `
+    <tr>
+      <td><div class="name-cell"><div class="avatar-sm">${initials(d.name)}</div><span class="cell-main">${d.name}</span></div></td>
+      <td class="text-muted">${d.region}</td>
+      <td class="cell-mono">${d.billsPerMonth}</td>
+      <td class="cell-amount">${fmtCurrency(d.billsPerMonth * 3800)}</td>
+    </tr>
+  `).join('');
+}
+
+function renderInvoices(){
+  const body = document.getElementById('invoicesBody');
+  if(!body) return;
+  body.innerHTML = INVOICES.map((inv, i) => `
+    <tr data-status="${inv.status}">
+      <td class="cell-mono">${inv.number}</td>
+      <td>${inv.distributor}</td>
+      <td>${inv.customer}</td>
+      <td class="cell-amount">${fmtCurrency(inv.amount)}</td>
+      <td class="text-muted">${inv.due}</td>
+      <td><span class="badge ${badgeFor(inv.status)}">${inv.status[0].toUpperCase() + inv.status.slice(1)}</span></td>
+      <td class="row-actions">
+        <button class="icon-action" title="View invoice &amp; QR" onclick="viewInvoice(${i})">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function renderQrLog(){
+  const el = document.getElementById('qrLogBody');
+  if(!el) return;
+  el.innerHTML = QR_LOG.map(q => `
+    <tr>
+      <td class="cell-mono">${q.ref}</td>
+      <td class="cell-mono">${q.invoice}</td>
+      <td>${q.distributor}</td>
+      <td class="cell-amount">${fmtCurrency(q.amount)}</td>
+      <td class="text-muted">${q.time}</td>
+      <td><span class="badge ${badgeFor(q.result)}">${q.result[0].toUpperCase() + q.result.slice(1)}</span></td>
+    </tr>
+  `).join('');
+}
+
+function renderActivity(){
+  const el = document.getElementById('activityTimeline');
+  if(!el) return;
+  el.innerHTML = ACTIVITY.map(a => `
+    <div class="timeline-item">
+      <div class="t-title">${a.title}</div>
+      <div class="t-meta">${a.meta}</div>
+    </div>
+  `).join('');
+}
+
+function renderBars(){
+  const el = document.getElementById('revenueBars');
+  if(!el) return;
+  const days = [
+    { label: 'Mon', v: 62 }, { label: 'Tue', v: 78 }, { label: 'Wed', v: 55 },
+    { label: 'Thu', v: 91 }, { label: 'Fri', v: 84 }, { label: 'Sat', v: 68 }, { label: 'Sun', v: 40 },
+  ];
+  const max = Math.max(...days.map(d => d.v));
+  el.innerHTML = days.map(d => `
+    <div class="bar-col">
+      <div class="bar" style="height:${(d.v/max*100).toFixed(0)}%"></div>
+      <div class="bar-label">${d.label}</div>
+    </div>
+  `).join('');
+}
+
+function viewInvoice(index){
+  const inv = INVOICES[index];
+  document.getElementById('viewInvNumber').textContent = inv.number;
+  document.getElementById('viewInvCustomer').textContent = inv.customer;
+  document.getElementById('viewInvDist').textContent = inv.distributor;
+  document.getElementById('viewInvDate').textContent = '18 Aug 2026';
+  document.getElementById('viewInvDue').textContent = inv.due;
+  document.getElementById('viewInvAmount').textContent = fmtCurrency(inv.amount);
+  document.getElementById('viewInvRef').textContent = 'UPI ref will appear here once scanned · ' + inv.number;
+  const statusEl = document.getElementById('viewInvStatus');
+  statusEl.className = 'badge ' + badgeFor(inv.status);
+  statusEl.textContent = inv.status[0].toUpperCase() + inv.status.slice(1);
+
+  const wrap = document.getElementById('qrCanvasWrap');
+  wrap.innerHTML = '';
+  if(window.QRCode){
+    new QRCode(wrap, {
+      text: `upi://pay?pa=anandi-traders@okhdfc&pn=AnandiTraders&am=${inv.amount}&tn=${inv.number}`,
+      width: 168, height: 168,
+      colorDark: '#16213E', colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  }
+  openModal('modalViewInvoice');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  renderDistributors();
+  renderTopDistributors();
+  renderInvoices();
+  renderQrLog();
+  renderActivity();
+  renderBars();
+});
+</script>
 </body>
 </html>

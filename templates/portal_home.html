@@ -1,0 +1,73 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Advance Billing System with QR — Choose Workspace</title>
+<link rel="stylesheet" href="{% static 'css/app.css' %}" />
+</head>
+<body>
+
+<div class="portal-shell">
+  <div class="portal-card">
+
+    <div class="portal-intro">
+      <div class="qr-decor" aria-hidden="true">
+        <span></span><span></span><span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span><span></span><span></span>
+      </div>
+      <div class="brand">
+        <span class="qr-mark brand-mark"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span>
+        <div class="brand-text">
+          <strong>Advance Billing</strong>
+          <span>System with QR</span>
+        </div>
+      </div>
+      <div>
+        <h1>Every bill settles<br>with a single scan.</h1>
+        <p class="lead">One ledger for your whole distribution network — admins oversee every distributor and invoice, and distributors bill and get paid without spreadsheets or paper stubs.</p>
+      </div>
+      <div class="portal-feat">
+        <div class="f"><span class="num">01</span><span>Generate a QR-coded invoice in under a minute</span></div>
+        <div class="f"><span class="num">02</span><span>Track collections and dues across every distributor</span></div>
+        <div class="f"><span class="num">03</span><span>Payments confirm automatically the moment they're scanned</span></div>
+      </div>
+    </div>
+
+    <div class="portal-choices">
+      <div class="kicker">Continue as</div>
+      <h2 style="font-size:22px; margin-bottom:4px;">Choose your workspace</h2>
+      <p class="text-muted" style="font-size:13px; margin-bottom:10px;">Select the module you have access to.</p>
+
+      <a class="role-card" href="{% url 'admin_login' %}">
+        <span class="ric">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 4v5c0 5-3.5 8.5-8 9-4.5-.5-8-4-8-9V7l8-4z"/></svg>
+        </span>
+        <span class="rtext">
+          <strong>Admin Module</strong>
+          <span>Distributors, billing &amp; reports</span>
+        </span>
+        <svg class="arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+      </a>
+
+      <a class="role-card" href="{% url 'distributor_login' %}">
+        <span class="ric">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM19 14h2v2h-2zM14 19h2v2h-2zM19 19h2v2h-2z"/></svg>
+        </span>
+        <span class="rtext">
+          <strong>Distributor Module</strong>
+          <span>Generate bills &amp; track payments</span>
+        </span>
+        <svg class="arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+      </a>
+
+      <p class="text-muted" style="font-size:11.5px; margin-top:8px;">Pick a module to sign in and access your workspace.</p>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

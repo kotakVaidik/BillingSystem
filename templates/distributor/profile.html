@@ -1,0 +1,148 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Distributor Profile — Billing System" />
+  <title>My Profile — Billing System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}" />
+</head>
+<body>
+
+<!-- TOP NAVIGATION -->
+<nav class="dash-nav" role="navigation" aria-label="Main navigation">
+  <a href="{% url 'distributor_dashboard' %}" class="dash-nav-brand">
+    <div class="dash-nav-icon">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/>
+        <line x1="16" y1="17" x2="8" y2="17"/>
+      </svg>
+    </div>
+    <span class="dash-nav-name">Billing <span>System</span></span>
+  </a>
+
+  <div class="dash-nav-divider" aria-hidden="true"></div>
+
+  <div class="dash-nav-role">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+    Distributor
+  </div>
+
+  <div class="dash-nav-divider" aria-hidden="true"></div>
+
+  <div class="dash-nav-links">
+    <a href="{% url 'distributor_dashboard' %}" class="dash-nav-link">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Dashboard
+    </a>
+    <a href="{% url 'customer_list' %}" class="dash-nav-link">
+      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Customers
+    </a>
+    <a href="{% url 'distributor_profile' %}" class="dash-nav-link dash-nav-link--active">
+      <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Profile
+    </a>
+  </div>
+
+  <div class="dash-nav-spacer"></div>
+
+  <div class="dash-nav-user">
+    <div class="dash-nav-user-info">
+      <div class="dash-nav-user-name">{{ request.user.get_full_name|default:request.user.username }}</div>
+      <div class="dash-nav-user-role">Distributor Account</div>
+    </div>
+    <div class="dash-nav-avatar" aria-hidden="true">
+      {% with name=request.user.get_full_name|default:request.user.username %}
+        {{ name|slice:":1"|upper }}
+      {% endwith %}
+    </div>
+    <a href="{% url 'logout' %}" class="btn-signout" id="btn-signout">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sign Out
+    </a>
+  </div>
+</nav>
+
+<!-- MAIN CONTENT -->
+<div class="dash-layout">
+  <main class="dash-content">
+
+    <header class="page-header">
+      <div class="page-header-top">
+        <div>
+          <h1 class="page-title">Distributor Profile</h1>
+          <p class="page-subtitle">View and manage your account details.</p>
+        </div>
+        <div class="page-header-actions">
+          <a href="{% url 'edit_profile' %}" class="btn btn-primary btn-primary--dist">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Edit Profile
+          </a>
+        </div>
+      </div>
+    </header>
+
+    {% if messages %}
+      {% for message in messages %}
+        {% if message.tags == 'success' %}
+          <div style="background:#f0fdf4; border:1px solid #bbf7d0; color:#16a34a; padding:12px 16px; border-radius:6px; margin-bottom:20px; font-size:0.9rem;">
+            {{ message }}
+          </div>
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+
+    <!-- Profile Details Card -->
+    <div class="card" style="max-width:720px;">
+      <div class="card-header">
+        <div class="card-title">Account Information</div>
+        <span class="status-badge status-badge--success">Active Account</span>
+      </div>
+      <div class="card-body">
+        <table class="data-table" style="border:none;">
+          <tbody>
+            <tr>
+              <td style="width:200px; font-weight:600; color:var(--text-secondary);">Full Name</td>
+              <td style="font-weight:600;">{{ request.user.get_full_name|default:request.user.username }}</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600; color:var(--text-secondary);">Email Address</td>
+              <td>{{ request.user.email }}</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600; color:var(--text-secondary);">Phone Number</td>
+              <td>{{ profile.phone|default:"Not specified" }}</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600; color:var(--text-secondary);">Username</td>
+              <td><code>{{ request.user.username }}</code></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600; color:var(--text-secondary);">Account Role</td>
+              <td>Distributor</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600; color:var(--text-secondary);">Date Joined</td>
+              <td class="text-muted">{{ request.user.date_joined|date:"F j, Y" }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <footer class="dash-footer">
+      &copy; {% now "Y" %} Billing System &mdash; All rights reserved.
+    </footer>
+
+  </main>
+</div>
+
+</body>
+</html>

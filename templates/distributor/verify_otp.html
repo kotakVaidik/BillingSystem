@@ -1,0 +1,178 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Enter the OTP sent to your registered email to verify your identity." />
+  <title>Verify OTP — Billing System</title>
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Shared Login Stylesheet -->
+  <link rel="stylesheet" href="{% static 'css/login.css' %}" />
+</head>
+<body>
+
+<div class="login-page">
+
+  <main class="form-panel">
+    <div class="form-container">
+
+      <!-- Step Indicator -->
+      <div class="step-indicator" aria-label="Password reset steps">
+        <div class="step step--done">
+          <div class="step-dot" aria-label="Step 1 complete"></div>
+          <span class="step-label">Email</span>
+        </div>
+        <div class="step-connector step-connector--done"></div>
+        <div class="step step--active">
+          <div class="step-dot" aria-current="step">2</div>
+          <span class="step-label">Verify OTP</span>
+        </div>
+        <div class="step-connector"></div>
+        <div class="step">
+          <div class="step-dot">3</div>
+          <span class="step-label">New Password</span>
+        </div>
+      </div>
+
+      <!-- Role Badge -->
+      <div class="role-badge role-badge--distributor" aria-label="Role: Distributor">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="1" y="3" width="15" height="13" rx="1"/>
+          <path d="M16 8h4l3 3v5h-7V8z"/>
+          <circle cx="5.5" cy="18.5" r="2.5"/>
+          <circle cx="18.5" cy="18.5" r="2.5"/>
+        </svg>
+        Distributor Portal
+      </div>
+
+      <!-- Heading -->
+      <h2 class="form-heading">Verify OTP</h2>
+      <p class="form-subheading">
+        A 6-digit OTP has been sent to
+        {% if masked_email %}<strong>{{ masked_email }}</strong>{% else %}your registered email address{% endif %}.
+        Enter it below to proceed.
+      </p>
+
+      <div class="form-divider" aria-hidden="true"></div>
+
+      <!-- Messages -->
+      {% if messages %}
+        {% for message in messages %}
+          {% if message.tags == 'error' %}
+          <div class="form-error-banner" role="alert" aria-live="assertive">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            {{ message }}
+          </div>
+          {% elif message.tags == 'success' %}
+          <div class="form-success-banner" role="status" aria-live="polite">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+              <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+            {{ message }}
+          </div>
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+
+      <!-- OTP Form -->
+      <form
+        id="verifyOtpForm"
+        method="POST"
+        action="{% url 'distributor_verify_otp' %}"
+        novalidate
+        autocomplete="off"
+      >
+        {% csrf_token %}
+
+        <div class="login-form">
+
+          <div class="field-group">
+            <label class="field-label" for="id_otp">
+              One-Time Password <span class="required" aria-hidden="true">*</span>
+            </label>
+            <div class="input-wrapper">
+              <span class="input-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+              </span>
+              <input
+                type="text"
+                id="id_otp"
+                name="otp"
+                class="field-input otp-input"
+                placeholder="Enter 6-digit OTP"
+                inputmode="numeric"
+                pattern="[0-9]{6}"
+                maxlength="6"
+                required
+                aria-required="true"
+                aria-describedby="error_otp"
+                autocomplete="one-time-code"
+              />
+            </div>
+            <span class="field-error" id="error_otp" role="alert" aria-live="polite">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              <span></span>
+            </span>
+          </div>
+
+          <button type="submit" class="btn-primary btn-primary--distributor" id="btn-verify-otp">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+              <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+            Verify OTP
+          </button>
+
+        </div>
+
+      </form>
+
+      <!-- Resend OTP -->
+      <div class="otp-resend-row">
+        <span class="otp-resend-label">Didn't receive the OTP?</span>
+        <form method="POST" action="{% url 'distributor_resend_otp' %}" id="resendOtpForm" style="display:inline;">
+          {% csrf_token %}
+          <button
+            type="submit"
+            class="resend-btn"
+            id="btn-resend-otp"
+            aria-label="Resend OTP"
+          >Resend OTP</button>
+        </form>
+        <span class="resend-countdown" id="resendCountdown" aria-live="polite" hidden></span>
+      </div>
+
+      <div class="role-switch">
+        <a href="{% url 'distributor_password_reset' %}">&#8592; Back to Forgot Password</a>
+      </div>
+
+      <p class="form-footer">
+        &copy; {% now "Y" %} Billing System &mdash; All rights reserved.
+      </p>
+
+    </div>
+  </main>
+
+</div>
+
+<script src="{% static 'js/verify_otp.js' %}"></script>
+</body>
+</html>

@@ -2,13 +2,557 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Distributor Dashboard — Billing System</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Distributor · Advance Billing System with QR</title>
+<link rel="stylesheet" href="{% static 'css/app.css' %}" />
 </head>
 <body>
-  <h1>Distributor Dashboard</h1>
-  <p>Welcome, {{ request.user.username }}.</p>
-  <a href="{% url 'logout' %}">Sign Out</a>
+
+<div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar(false)"></div>
+
+<div class="app-shell">
+
+  <!-- ===================== SIDEBAR ===================== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-head">
+      <div class="brand">
+        <span class="qr-mark brand-mark"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span>
+        <div class="brand-text">
+          <strong>Advance Billing</strong>
+          <span>Distributor Portal</span>
+        </div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="sidebar-section-label">Overview</div>
+      <a class="nav-item active" onclick="showView('view-dashboard', this)">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Dashboard
+      </a>
+
+      <div class="sidebar-section-label">Billing</div>
+      <a class="nav-item" onclick="showView('view-generate', this)">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM19 14h2v2h-2zM14 19h2v2h-2zM19 19h2v2h-2z"/></svg>
+        Generate Bill
+      </a>
+      <a class="nav-item" onclick="showView('view-invoices', this)">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 3h10a1 1 0 0 1 1 1v16l-3-2-2 2-2-2-2 2-2-2-1 1V4a1 1 0 0 1 1-1z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>
+        My Invoices
+        <span class="count">18</span>
+      </a>
+      <a class="nav-item" onclick="showView('view-payments', this)">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+        Payments Received
+      </a>
+
+      <div class="sidebar-section-label">Account</div>
+      <a class="nav-item" href="{% url 'distributor_profile' %}">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
+        Profile &amp; Settings
+      </a>
+      <a class="nav-item" href="{% url 'customer_list' %}">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Customer Directory
+      </a>
+    </nav>
+
+    <div class="sidebar-foot">
+      <div class="role-switch">
+        <span class="qr-mark" style="width:16px;height:16px;"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span>
+        <span>Viewing as Distributor · <a href="{% url 'portal_home' %}">Switch</a></span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===================== MAIN ===================== -->
+  <div class="main">
+    <header class="topbar">
+      <button class="menu-toggle" onclick="toggleSidebar()" aria-label="Toggle menu">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+      <div>
+        <div class="page-eyebrow" id="pageEyebrow">Overview</div>
+        <h1 class="page-title" id="pageTitle">Dashboard</h1>
+      </div>
+      <div class="searchbox">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input type="text" placeholder="Search customers or invoices…">
+      </div>
+      <div class="topbar-actions">
+        <button class="icon-btn" aria-label="Notifications">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+          <span class="dot"></span>
+        </button>
+        <div class="user-chip" onclick="window.location.href='{% url "logout" %}'" title="Click to Sign Out">
+          <span class="avatar">
+            {% with name=request.user.get_full_name|default:request.user.username %}
+              {{ name|slice:":1"|upper }}
+            {% endwith %}
+          </span>
+          <span class="who">
+            <strong>{{ request.user.get_full_name|default:request.user.username }}</strong>
+            <span>Distributor (Sign Out)</span>
+          </span>
+        </div>
+      </div>
+    </header>
+
+    <main class="content">
+
+      <!-- ===================== DASHBOARD ===================== -->
+      <section class="view active" id="view-dashboard">
+        <div class="section-head">
+          <div>
+            <h2>Good morning, {{ request.user.first_name|default:request.user.username }}</h2>
+            <p>Here's your billing snapshot for today, {% now "j F Y" %}.</p>
+          </div>
+          <button class="btn btn-primary" onclick="showView('view-generate', document.querySelectorAll('.nav-item')[1])">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+            Generate Bill
+          </button>
+        </div>
+
+        <div class="grid cols-4">
+          <div class="stat-card accent-teal">
+            <div class="label">Collected today</div>
+            <div class="value">₹18,900</div>
+            <div class="delta up">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 18L18 6M18 6H9M18 6v9"/></svg>
+              6 bills <span class="mut">scanned &amp; paid</span>
+            </div>
+          </div>
+          <div class="stat-card accent-amber">
+            <div class="label">Pending collections</div>
+            <div class="value">₹18,500</div>
+            <div class="delta down">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 6l12 12M18 6H9M18 6v9"/></svg>
+              3 invoices <span class="mut">awaiting payment</span>
+            </div>
+          </div>
+          <div class="stat-card accent-ink">
+            <div class="label">Total Customers</div>
+            <div class="value">{{ customer_count|default:"0" }}</div>
+            <div class="delta up">
+              <a href="{% url 'customer_list' %}" style="color:var(--teal); font-weight:600;">View directory &rarr;</a>
+            </div>
+          </div>
+          <div class="stat-card accent-teal">
+            <div class="label">Bills this month</div>
+            <div class="value">34</div>
+            <div class="delta up">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 18L18 6M18 6H9M18 6v9"/></svg>
+              On track <span class="mut">vs your target of 40</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid span-2-1 mt-24">
+          <div class="card">
+            <div class="card-head">
+              <div><h3>Collections, last 7 days</h3><div class="sub">Amount received per day via QR</div></div>
+            </div>
+            <div class="card-pad"><div class="bars" id="revenueBars"></div></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><h3>Monthly target</h3></div>
+            <div class="card-pad flex items-center gap-12" style="flex-direction:column;">
+              <div class="ring" style="background: conic-gradient(var(--teal) 0% 85%, var(--line) 85% 100%);">
+                <div class="ring-inner"><strong>85%</strong><span>of target</span></div>
+              </div>
+              <p class="text-muted" style="font-size:12px; text-align:center;">₹1,27,500 billed of your ₹1,50,000 monthly target — 6 working days left.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mt-24">
+          <div class="card-head">
+            <div><h3>Recent bills</h3><div class="sub">Your latest invoices and their status</div></div>
+            <a class="btn btn-ghost btn-sm" onclick="showView('view-invoices', document.querySelectorAll('.nav-item')[2])">View all</a>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Invoice</th><th>Customer</th><th>Amount</th><th>Due</th><th>Status</th><th></th></tr></thead>
+              <tbody id="recentInvoicesBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== GENERATE BILL ===================== -->
+      <section class="view" id="view-generate">
+        <div class="section-head">
+          <div>
+            <h2>Generate a bill</h2>
+            <p>Fill in the details — a payment QR is created the moment you save.</p>
+          </div>
+        </div>
+
+        <div class="grid span-2-1">
+          <div class="card card-pad">
+            <div class="field"><label>Customer name</label><input type="text" id="genCustomer" placeholder="e.g. Shree Umiya Store" value="Shree Umiya Store"></div>
+            <div class="field-row">
+              <div class="field"><label>Customer phone</label><input type="tel" id="genPhone" placeholder="+91" value="+91 90000 11122"></div>
+              <div class="field"><label>Due date</label><input type="date" id="genDue"></div>
+            </div>
+
+            <div class="field">
+              <label>Items</label>
+              <div class="table-wrap" style="border:1px solid var(--line); border-radius:var(--radius-sm);">
+                <table>
+                  <thead><tr><th>Item</th><th>Qty</th><th>Rate</th><th>Total</th></tr></thead>
+                  <tbody id="itemsBody"></tbody>
+                </table>
+              </div>
+              <button class="btn btn-ghost btn-sm mt-8" onclick="addItemRow()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                Add item
+              </button>
+            </div>
+
+            <div class="field"><label>Note (optional)</label><textarea id="genNote" placeholder="e.g. August stock replenishment"></textarea></div>
+
+            <div class="flex justify-between items-center mt-16" style="border-top:1px solid var(--line); padding-top:16px;">
+              <span class="text-muted" style="font-size:13px;">Bill total</span>
+              <span class="cell-amount" style="font-size:20px;" id="genTotal">₹0</span>
+            </div>
+          </div>
+
+          <div class="card card-pad">
+            <h3 class="mt-0" style="margin-bottom:14px; font-size:14px;">Live preview</h3>
+            <div class="qr-box">
+              <span class="stamp">Preview</span>
+              <div class="qr-canvas-wrap" id="genQrWrap"></div>
+              <div class="qr-caption">Generates automatically as you type</div>
+            </div>
+            <button class="btn btn-primary btn-block mt-16" onclick="generateBill()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+              Save &amp; generate final bill
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== MY INVOICES ===================== -->
+      <section class="view" id="view-invoices">
+        <div class="section-head">
+          <div>
+            <h2>My Invoices</h2>
+            <p>Every bill you've raised, and whether it's been settled.</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="table-toolbar">
+            <input type="text" placeholder="Search customer or invoice number…" style="flex:1; min-width:200px; padding:9px 14px; border-radius:999px; border:1px solid var(--line); font-size:13px;" oninput="filterTable(this, 'allInvoicesBody')">
+            <div data-filter-group="dinv" class="flex gap-8" style="margin-left:auto;">
+              <button class="chip-filter active" data-value="all" onclick="applyChipFilter(this,'[data-filter-group=dinv]','allInvoicesBody','status')">All</button>
+              <button class="chip-filter" data-value="paid" onclick="applyChipFilter(this,'[data-filter-group=dinv]','allInvoicesBody','status')">Paid</button>
+              <button class="chip-filter" data-value="pending" onclick="applyChipFilter(this,'[data-filter-group=dinv]','allInvoicesBody','status')">Pending</button>
+              <button class="chip-filter" data-value="overdue" onclick="applyChipFilter(this,'[data-filter-group=dinv]','allInvoicesBody','status')">Overdue</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Invoice</th><th>Customer</th><th>Amount</th><th>Due</th><th>Status</th><th></th></tr></thead>
+              <tbody id="allInvoicesBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== PAYMENTS RECEIVED ===================== -->
+      <section class="view" id="view-payments">
+        <div class="section-head">
+          <div>
+            <h2>Payments Received</h2>
+            <p>Confirmed QR settlements against your invoices.</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>Payment history</h3></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Reference</th><th>Invoice</th><th>Customer</th><th>Amount</th><th>Received</th></tr></thead>
+              <tbody id="paymentsBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<div class="toast-stack" id="toastStack"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+function toggleSidebar(force){
+  const sb = document.getElementById('sidebar');
+  const bd = document.getElementById('sidebarBackdrop');
+  const isOpen = force !== undefined ? force : !sb.classList.contains('open');
+  sb.classList.toggle('open', isOpen);
+  bd.classList.toggle('open', isOpen);
+}
+
+function openModal(id){
+  document.getElementById(id).classList.add('open');
+}
+function closeModal(id){
+  document.getElementById(id).classList.remove('open');
+}
+document.addEventListener('click', (e) => {
+  if(e.target.classList && e.target.classList.contains('modal-overlay')){
+    e.target.classList.remove('open');
+  }
+});
+document.addEventListener('keydown', (e) => {
+  if(e.key === 'Escape'){
+    document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
+  }
+});
+
+function showToast(message, type){
+  const stack = document.getElementById('toastStack');
+  if(!stack) return;
+  const el = document.createElement('div');
+  el.className = 'toast' + (type ? ' ' + type : '');
+  el.innerHTML = `<span class="qr-mark" style="width:16px;height:16px;">
+      <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+    </span><span>${message}</span>`;
+  stack.appendChild(el);
+  setTimeout(() => {
+    el.style.transition = 'opacity 0.3s ease';
+    el.style.opacity = '0';
+    setTimeout(() => el.remove(), 300);
+  }, 3200);
+}
+
+function fmtCurrency(n){
+  return '₹' + Number(n).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+}
+
+function fmtDate(d){
+  return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function initials(name){
+  return name.split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase();
+}
+
+function showView(viewId, navEl){
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(viewId).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if(navEl) navEl.classList.add('active');
+  const titleMap = window.__pageTitles || {};
+  if(titleMap[viewId]){
+    document.getElementById('pageTitle').textContent = titleMap[viewId].title;
+    document.getElementById('pageEyebrow').textContent = titleMap[viewId].eyebrow;
+  }
+  window.scrollTo({top:0, behavior:'smooth'});
+  toggleSidebar(false);
+}
+
+function filterTable(inputEl, tableBodyId){
+  const q = inputEl.value.trim().toLowerCase();
+  const rows = document.querySelectorAll('#' + tableBodyId + ' tr');
+  rows.forEach(r => {
+    r.style.display = r.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+function applyChipFilter(chip, groupSelector, tableBodyId, attr){
+  document.querySelectorAll(groupSelector + ' .chip-filter').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  const val = chip.dataset.value;
+  document.querySelectorAll('#' + tableBodyId + ' tr').forEach(r => {
+    r.style.display = (val === 'all' || r.dataset[attr] === val) ? '' : 'none';
+  });
+}
+</script>
+<script>
+window.__pageTitles = {
+  'view-dashboard':  { eyebrow: 'Overview', title: 'Dashboard' },
+  'view-generate':   { eyebrow: 'Billing',  title: 'Generate Bill' },
+  'view-invoices':   { eyebrow: 'Billing',  title: 'My Invoices' },
+  'view-payments':   { eyebrow: 'Billing',  title: 'Payments Received' },
+};
+
+const MY_INVOICES = [
+  { number: 'INV-3021', customer: 'Shree Umiya Store', amount: 12500, due: '02 Sep 2026', status: 'pending' },
+  { number: 'INV-3015', customer: 'Sundar Kirana',      amount: 8200,  due: '28 Aug 2026', status: 'paid' },
+  { number: 'INV-3009', customer: 'Balaji Traders',     amount: 21300, due: '20 Aug 2026', status: 'overdue' },
+  { number: 'INV-3004', customer: 'New India Mart',     amount: 5400,  due: '30 Aug 2026', status: 'paid' },
+  { number: 'INV-2998', customer: 'City Wholesale',     amount: 15600, due: '18 Aug 2026', status: 'overdue' },
+  { number: 'INV-2991', customer: 'Om Provisions',      amount: 9400,  due: '05 Sep 2026', status: 'pending' },
+];
+
+const PAYMENTS = [
+  { ref: 'QR-88213', invoice: 'INV-3015', customer: 'Sundar Kirana',  amount: 8200, when: '26 Aug, 09:14 AM' },
+  { ref: 'QR-88208', invoice: 'INV-3004', customer: 'New India Mart', amount: 5400, when: '24 Aug, 03:10 PM' },
+  { ref: 'QR-88190', invoice: 'INV-2987', customer: 'Patel General',  amount: 6700, when: '21 Aug, 11:45 AM' },
+];
+
+const badgeFor = (status) => ({ paid: 'success', pending: 'warning', overdue: 'danger' }[status] || 'neutral');
+
+function renderRecentInvoices(){
+  const body = document.getElementById('recentInvoicesBody');
+  if(!body) return;
+  body.innerHTML = MY_INVOICES.slice(0,4).map((inv,i) => `
+    <tr>
+      <td class="cell-mono">${inv.number}</td>
+      <td>${inv.customer}</td>
+      <td class="cell-amount">${fmtCurrency(inv.amount)}</td>
+      <td class="text-muted">${inv.due}</td>
+      <td><span class="badge ${badgeFor(inv.status)}">${inv.status[0].toUpperCase()+inv.status.slice(1)}</span></td>
+      <td class="row-actions"><button class="icon-action" onclick="showToast('Reminder sent to customer')" title="Remind"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/></svg></button></td>
+    </tr>
+  `).join('');
+}
+
+function renderAllInvoices(){
+  const body = document.getElementById('allInvoicesBody');
+  if(!body) return;
+  body.innerHTML = MY_INVOICES.map(inv => `
+    <tr data-status="${inv.status}">
+      <td class="cell-mono">${inv.number}</td>
+      <td>${inv.customer}</td>
+      <td class="cell-amount">${fmtCurrency(inv.amount)}</td>
+      <td class="text-muted">${inv.due}</td>
+      <td><span class="badge ${badgeFor(inv.status)}">${inv.status[0].toUpperCase()+inv.status.slice(1)}</span></td>
+      <td class="row-actions"><button class="icon-action" onclick="showToast('Reminder sent to customer')" title="Remind"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/></svg></button></td>
+    </tr>
+  `).join('');
+}
+
+function renderPayments(){
+  const body = document.getElementById('paymentsBody');
+  if(!body) return;
+  body.innerHTML = PAYMENTS.map(p => `
+    <tr>
+      <td class="cell-mono">${p.ref}</td>
+      <td class="cell-mono">${p.invoice}</td>
+      <td>${p.customer}</td>
+      <td class="cell-amount">${fmtCurrency(p.amount)}</td>
+      <td class="text-muted">${p.when}</td>
+    </tr>
+  `).join('');
+}
+
+function renderBars(){
+  const el = document.getElementById('revenueBars');
+  if(!el) return;
+  const days = [
+    { label: 'Mon', v: 12400 }, { label: 'Tue', v: 15800 }, { label: 'Wed', v: 9200 },
+    { label: 'Thu', v: 21000 }, { label: 'Fri', v: 17600 }, { label: 'Sat', v: 13100 }, { label: 'Sun', v: 6400 },
+  ];
+  const max = Math.max(...days.map(d => d.v));
+  el.innerHTML = days.map(d => `
+    <div class="bar-col">
+      <div class="bar" style="height:${(d.v/max*100).toFixed(0)}%"></div>
+      <div class="bar-label">${d.label}</div>
+    </div>
+  `).join('');
+}
+
+let itemSeq = 0;
+let items = [];
+
+function addItemRow(name, qty, rate){
+  itemSeq++;
+  items.push({ id: itemSeq, name: name || '', qty: qty || 1, rate: rate || 0 });
+  renderItems();
+}
+
+function removeItemRow(id){
+  items = items.filter(i => i.id !== id);
+  renderItems();
+}
+
+function updateItem(id, field, value){
+  const item = items.find(i => i.id === id);
+  if(!item) return;
+  item[field] = field === 'name' ? value : Number(value) || 0;
+  renderItems(true);
+}
+
+function renderItems(skipRebuildFocus){
+  const body = document.getElementById('itemsBody');
+  if(!body) return;
+  body.innerHTML = items.map(i => `
+    <tr>
+      <td><input type="text" value="${i.name}" placeholder="Item name" oninput="updateItem(${i.id},'name',this.value)" style="border:none; width:100%; font-size:13px; padding:4px;"></td>
+      <td><input type="number" min="1" value="${i.qty}" oninput="updateItem(${i.id},'qty',this.value)" style="border:none; width:56px; font-size:13px; padding:4px;"></td>
+      <td><input type="number" min="0" value="${i.rate}" oninput="updateItem(${i.id},'rate',this.value)" style="border:none; width:80px; font-size:13px; padding:4px;"></td>
+      <td class="cell-amount">${fmtCurrency(i.qty * i.rate)}</td>
+      <td><button class="icon-action" style="border:none; width:24px; height:24px;" onclick="removeItemRow(${i.id})" title="Remove">✕</button></td>
+    </tr>
+  `).join('');
+  updateTotal();
+  updateGenQr();
+}
+
+function billTotal(){
+  return items.reduce((sum, i) => sum + (i.qty * i.rate), 0);
+}
+
+function updateTotal(){
+  const el = document.getElementById('genTotal');
+  if(el) el.textContent = fmtCurrency(billTotal());
+}
+
+function updateGenQr(){
+  const wrap = document.getElementById('genQrWrap');
+  if(!wrap) return;
+  wrap.innerHTML = '';
+  const total = billTotal();
+  if(total <= 0 || !window.QRCode) {
+    wrap.innerHTML = '<div style="width:168px;height:168px;display:flex;align-items:center;justify-content:center;color:var(--text-faint);font-size:11.5px;text-align:center;padding:10px;">Add an item to preview the QR</div>';
+    return;
+  }
+  new QRCode(wrap, {
+    text: `upi://pay?pa=karanmehta@okhdfc&pn=KaranMehta&am=${total}&tn=BILL`,
+    width: 168, height: 168,
+    colorDark: '#16213E', colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.M
+  });
+}
+
+function generateBill(){
+  const customerEl = document.getElementById('genCustomer');
+  const customer = customerEl ? customerEl.value.trim() : '';
+  if(!customer || items.length === 0 || billTotal() <= 0){
+    showToast('Add a customer and at least one item first', 'error');
+    return;
+  }
+  const number = 'INV-' + (3022 + Math.floor(Math.random()*20));
+  MY_INVOICES.unshift({ number, customer, amount: billTotal(), due: document.getElementById('genDue').value || 'Not set', status: 'pending' });
+  renderRecentInvoices();
+  renderAllInvoices();
+  showToast(`${number} generated for ${fmtCurrency(billTotal())} — QR ready to share`, 'success');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  renderRecentInvoices();
+  renderAllInvoices();
+  renderPayments();
+  renderBars();
+  addItemRow('Basmati Rice 25kg', 4, 1450);
+  addItemRow('Sunflower Oil 15L', 2, 2600);
+
+  const dueField = document.getElementById('genDue');
+  if(dueField){
+    const d = new Date(); d.setDate(d.getDate() + 15);
+    dueField.value = d.toISOString().split('T')[0];
+  }
+
+  const custInput = document.getElementById('genCustomer');
+  if(custInput) custInput.addEventListener('input', updateGenQr);
+});
+</script>
 </body>
 </html>

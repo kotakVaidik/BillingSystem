@@ -118,3 +118,17 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGIN_URL = '/login/admin/'
+
+# ---------------------------------------------------------------
+# Email Configuration — SMTP
+# ---------------------------------------------------------------
+EMAIL_BACKEND       = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST          = 'smtp.gmail.com'
+EMAIL_PORT          = 587
+EMAIL_USE_TLS       = True
+EMAIL_HOST_USER     = 'eventeasehub7@gmail.com'
+EMAIL_HOST_PASSWORD = 'hixv rljq npqi diab'
+DEFAULT_FROM_EMAIL  = 'Billing System <eventeasehub7@gmail.com>'
+
+# OTP expiry in minutes (must match billing_app/models.py OTP_EXPIRY_MINUTES)
+OTP_EXPIRY_MINUTES = 10
