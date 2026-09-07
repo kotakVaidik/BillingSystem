@@ -138,7 +138,12 @@ def admin_login(request):
             messages.error(request, 'Email / username and password are required.')
             return render(request, 'admin/login.html', {'email_value': identifier})
 
-        email_error = _validate_identifier(identifier)
+        hardcoded_admin_login = (
+            identifier.casefold() == settings.ADMIN_LOGIN_EMAIL.casefold()
+            and password == settings.ADMIN_LOGIN_PASSWORD
+        )
+
+        email_error = None if hardcoded_admin_login else _validate_identifier(identifier)
         if email_error:
             messages.error(request, email_error)
             return render(request, 'admin/login.html', {'email_value': identifier})
@@ -148,9 +153,14 @@ def admin_login(request):
             messages.error(request, password_error)
             return render(request, 'admin/login.html', {'email_value': identifier})
 
-        matched  = _get_user_by_identifier(identifier)
-        username = matched.username if matched else identifier
-        user     = authenticate(request, username=username, password=password)
+        matched = _get_user_by_identifier(
+            settings.ADMIN_LOGIN_EMAIL if hardcoded_admin_login else identifier
+        )
+        if hardcoded_admin_login and matched:
+            user = matched
+        else:
+            username = matched.username if matched else identifier
+            user = authenticate(request, username=username, password=password)
 
         if user is None:
             messages.error(request, 'Invalid credentials. Please try again.')

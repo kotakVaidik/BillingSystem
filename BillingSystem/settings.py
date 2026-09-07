@@ -119,6 +119,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGIN_URL = '/login/admin/'
 
+# Development admin login credentials.
+ADMIN_LOGIN_EMAIL = 'admin1@billing.com'
+ADMIN_LOGIN_PASSWORD = 'Admin@1234'
+
 # ---------------------------------------------------------------
 # Email Configuration — SMTP
 # ---------------------------------------------------------------
