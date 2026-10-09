@@ -26,8 +26,10 @@ urlpatterns = [
 
     path('distributor/profile/',       views.distributor_profile, name='distributor_profile'),
     path('distributor/profile/edit/',  views.edit_profile,        name='edit_profile'),
-    path('distributor/customers/',     views.customer_list,       name='customer_list'),
-    path('distributor/customers/add/', views.add_customer,        name='add_customer'),
+    path('distributor/customers/',                           views.customer_list,   name='customer_list'),
+    path('distributor/customers/add/',                       views.add_customer,    name='add_customer'),
+    path('distributor/customers/<int:customer_id>/edit/',    views.edit_customer,   name='edit_customer'),
+    path('distributor/customers/<int:customer_id>/delete/',  views.delete_customer, name='delete_customer'),
 
     path('logout/', views.user_logout, name='logout'),
 ]

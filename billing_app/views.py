@@ -16,10 +16,11 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group, User
 from django.core.mail import send_mail
-from django.shortcuts import redirect, render
+from django.db.models import Q
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
-from .models import DistributorProfile, OTPToken
+from .models import Customer, DistributorProfile, OTPToken
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -652,15 +653,23 @@ def edit_profile(request):
 
 @login_required(login_url='distributor_login')
 def customer_list(request):
-    """
-    Task 3: List customers created by the logged-in distributor.
-    """
     if not request.user.groups.filter(name='Distributor').exists():
         messages.error(request, 'Access denied.')
         return redirect('distributor_login')
 
+    query = request.GET.get('q', '').strip()
     customers = Customer.objects.filter(distributor=request.user)
-    return render(request, 'distributor/customer_list.html', {'customers': customers})
+    if query:
+        customers = customers.filter(
+            Q(name__icontains=query) |
+            Q(phone__icontains=query) |
+            Q(email__icontains=query) |
+            Q(address__icontains=query)
+        )
+    return render(request, 'distributor/customer_list.html', {
+        'customers': customers,
+        'search': query,
+    })
 
 
 @login_required(login_url='distributor_login')
@@ -713,3 +722,84 @@ def add_customer(request):
 
     return render(request, 'distributor/add_customer.html')
 
+
+@login_required(login_url='distributor_login')
+def edit_customer(request, customer_id):
+    """
+    Task 5: Update existing customer details for the logged-in distributor.
+    """
+    if not request.user.groups.filter(name='Distributor').exists():
+        messages.error(request, 'Access denied.')
+        return redirect('distributor_login')
+
+    customer = get_object_or_404(Customer, id=customer_id, distributor=request.user)
+
+    if request.method == 'POST':
+        name    = request.POST.get('name', '').strip()
+        email   = request.POST.get('email', '').strip().lower()
+        phone   = request.POST.get('phone', '').strip()
+        address = request.POST.get('address', '').strip()
+
+        context = {
+            'customer': customer,
+            'name_value': name,
+            'email_value': email,
+            'phone_value': phone,
+            'address_value': address,
+        }
+
+        if not name:
+            messages.error(request, 'Customer name is required.')
+            return render(request, 'distributor/edit_customer.html', context)
+
+        if email:
+            email_err = _validate_identifier(email)
+            if email_err:
+                messages.error(request, email_err)
+                return render(request, 'distributor/edit_customer.html', context)
+
+        phone_err = _validate_phone(phone)
+        if phone_err:
+            messages.error(request, phone_err)
+            return render(request, 'distributor/edit_customer.html', context)
+
+        customer.name = name
+        customer.email = email if email else None
+        customer.phone = phone
+        customer.address = address if address else None
+        customer.save()
+
+        messages.success(request, f'Customer "{name}" updated successfully.')
+        return redirect('customer_list')
+
+    context = {
+        'customer': customer,
+        'name_value': customer.name,
+        'email_value': customer.email or '',
+        'phone_value': customer.phone,
+        'address_value': customer.address or '',
+    }
+    return render(request, 'distributor/edit_customer.html', context)
+
+
+@login_required(login_url='distributor_login')
+def delete_customer(request, customer_id):
+    """
+    Task 6: Delete customer record belonging to the logged-in distributor.
+    """
+    if not request.user.groups.filter(name='Distributor').exists():
+        messages.error(request, 'Access denied.')
+        return redirect('distributor_login')
+
+    customer = get_object_or_404(Customer, id=customer_id, distributor=request.user)
+
+    if request.method == 'POST':
+        try:
+            customer_name = customer.name
+            customer.delete()
+            messages.success(request, f'Customer "{customer_name}" deleted successfully.')
+        except Exception:
+            messages.error(request, 'An error occurred while deleting the customer.')
+        return redirect('customer_list')
+
+    return redirect('customer_list')
