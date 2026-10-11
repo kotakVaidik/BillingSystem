@@ -31,7 +31,18 @@ urlpatterns = [
     path('distributor/customers/<int:customer_id>/edit/',    views.edit_customer,   name='edit_customer'),
     path('distributor/customers/<int:customer_id>/delete/',  views.delete_customer, name='delete_customer'),
 
+    path('distributor/products/',                            views.product_list,    name='product_list'),
+    path('distributor/products/add/',                        views.add_product,     name='add_product'),
+    path('distributor/products/<int:product_id>/edit/',      views.edit_product,    name='edit_product'),
+    path('distributor/products/<int:product_id>/delete/',    views.delete_product,  name='delete_product'),
+    path('products/',                                        views.product_list,    name='product_list_direct'),
+    path('products/add/',                                    views.add_product,     name='add_product_direct'),
+
+    path('api/hsn-lookup/',                                  views.api_hsn_lookup,  name='api_hsn_lookup'),
+    path('api/save-invoice/',                                 views.api_save_invoice, name='api_save_invoice'),
+
     path('logout/', views.user_logout, name='logout'),
+
 ]
 
 

@@ -1,0 +1,409 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Product & Inventory Directory — Billing System" />
+  <title>Products &amp; Inventory — Billing System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}" />
+  <style>
+    .badge-tax {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 11.5px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .badge-tax--taxable { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    .badge-tax--exempt  { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+    .badge-tax--nil     { background: #fefce8; color: #a16207; border: 1px solid #fef08a; }
+    .badge-tax--nongst  { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+    .badge-stock {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge-stock--in   { background: #f0fdf4; color: #16a34a; }
+    .badge-stock--low  { background: #fffbeb; color: #b45309; }
+    .badge-stock--out  { background: #fef2f2; color: #dc2626; }
+    .pagination-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-top: 1px solid var(--border-color, #e2e8f0);
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .pagination-links {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .page-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 34px;
+      height: 34px;
+      padding: 0 10px;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #334155;
+      font-size: 13px;
+      font-weight: 500;
+      text-decoration: none;
+      transition: all 0.15s ease;
+    }
+    .page-btn:hover:not(.disabled) {
+      background: #f8fafc;
+      border-color: #94a3b8;
+      color: #0f172a;
+    }
+    .page-btn.active {
+      background: #2563eb;
+      border-color: #2563eb;
+      color: #ffffff;
+    }
+    .page-btn.disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+<nav class="dash-nav" role="navigation" aria-label="Main navigation">
+  <a href="{% url 'distributor_dashboard' %}" class="dash-nav-brand">
+    <div class="dash-nav-icon">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/>
+        <line x1="16" y1="17" x2="8" y2="17"/>
+      </svg>
+    </div>
+    <span class="dash-nav-name">Billing <span>System</span></span>
+  </a>
+
+  <div class="dash-nav-divider" aria-hidden="true"></div>
+
+  <div class="dash-nav-role">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+    Distributor
+  </div>
+
+  <div class="dash-nav-divider" aria-hidden="true"></div>
+
+  <div class="dash-nav-links">
+    <a href="{% url 'distributor_dashboard' %}" class="dash-nav-link">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Dashboard
+    </a>
+    <a href="{% url 'product_list' %}" class="dash-nav-link dash-nav-link--active">
+      <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+      Products
+    </a>
+    <a href="{% url 'customer_list' %}" class="dash-nav-link">
+      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Customers
+    </a>
+    <a href="{% url 'distributor_profile' %}" class="dash-nav-link">
+      <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Profile
+    </a>
+  </div>
+
+  <div class="dash-nav-spacer"></div>
+
+  <div class="dash-nav-user">
+    <div class="dash-nav-user-info">
+      <div class="dash-nav-user-name">{{ request.user.get_full_name|default:request.user.username }}</div>
+      <div class="dash-nav-user-role">Distributor Account</div>
+    </div>
+    <div class="dash-nav-avatar" aria-hidden="true">
+      {% with name=request.user.get_full_name|default:request.user.username %}
+        {{ name|slice:":1"|upper }}
+      {% endwith %}
+    </div>
+    <a href="{% url 'logout' %}" class="btn-signout" id="btn-signout">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sign Out
+    </a>
+  </div>
+</nav>
+<div class="dash-layout">
+  <main class="dash-content">
+
+    <header class="page-header">
+      <div class="page-header-top">
+        <div>
+          <h1 class="page-title">Product Directory &amp; GST Catalog</h1>
+          <p class="page-subtitle">Manage items, stock quantities, HSN codes, and verified GST tax slabs.</p>
+        </div>
+        <div class="page-header-actions">
+          <a href="{% url 'add_product' %}" class="btn btn-primary btn-primary--dist">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add New Product
+          </a>
+        </div>
+      </div>
+    </header>
+
+    {% if messages %}
+      {% for message in messages %}
+        {% if message.tags == 'error' %}
+          <div style="background:#fef2f2; border:1px solid #fecaca; color:#dc2626; padding:12px 16px; border-radius:6px; margin-bottom:20px; font-size:0.9rem; display:flex; align-items:center; gap:8px;">
+            <svg style="width:16px; height:16px; flex-shrink:0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            {{ message }}
+          </div>
+        {% elif message.tags == 'success' %}
+          <div style="background:#f0fdf4; border:1px solid #bbf7d0; color:#16a34a; padding:12px 16px; border-radius:6px; margin-bottom:20px; font-size:0.9rem; display:flex; align-items:center; gap:8px;">
+            <svg style="width:16px; height:16px; flex-shrink:0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            {{ message }}
+          </div>
+        {% else %}
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; color:#475569; padding:12px 16px; border-radius:6px; margin-bottom:20px; font-size:0.9rem;">
+            {{ message }}
+          </div>
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+    <div class="card">
+      <div class="card-header" style="flex-wrap: wrap; gap: 14px;">
+        <div>
+          <div class="card-title">All Products</div>
+          <div class="card-subtitle">
+            {% if search %}
+              Found {{ total_count }} product(s) matching "{{ search }}"
+            {% else %}
+              Showing {{ total_count }} product(s) in catalog
+            {% endif %}
+          </div>
+        </div>
+        <form method="GET" action="{% url 'product_list' %}" style="display:flex; align-items:center; gap:8px;">
+          <div class="search-input-wrap">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input
+              type="text"
+              name="q"
+              placeholder="Search by name, category, HSN..."
+              value="{{ search|default:'' }}"
+            />
+          </div>
+          <button type="submit" class="btn btn-ghost" style="height:36px; padding:0 14px;">Search</button>
+          {% if search %}
+            <a href="{% url 'product_list' %}" class="btn btn-ghost" style="height:36px; padding:0 12px; color:var(--text-muted);" title="Clear search">Clear</a>
+          {% endif %}
+        </form>
+      </div>
+
+      <div class="card-body" style="padding:0;">
+        {% if products %}
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Product Name</th>
+                  <th>Category</th>
+                  <th>HSN Code</th>
+                  <th>Price (₹)</th>
+                  <th>Stock</th>
+                  <th>Applicable GST</th>
+                  <th style="text-align: right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for p in products %}
+                  <tr>
+                    <td class="text-muted">{{ forloop.counter0|add:page_obj.start_index }}</td>
+                    <td style="font-weight:600;">
+                      {{ p.name }}
+                      {% if p.description %}
+                        <div style="font-size:12px; font-weight:400; color:#64748b;">{{ p.description|truncatewords:8 }}</div>
+                      {% endif %}
+                    </td>
+                    <td>
+                      <span style="display:inline-block; padding:2px 8px; background:#f1f5f9; border-radius:4px; font-size:12px; font-weight:500;">
+                        {{ p.category }}
+                      </span>
+                    </td>
+                    <td><code style="font-family:monospace; font-size:12.5px; background:#f8fafc; padding:2px 5px; border-radius:3px; border:1px solid #e2e8f0;">{{ p.hsn_code }}</code></td>
+                    <td style="font-weight:600;">
+                      ₹{{ p.price }}
+                      {% if p.price_includes_gst %}
+                        <span style="font-size:10.5px; color:#16a34a; font-weight:normal;" title="Price includes GST">(Incl. GST)</span>
+                      {% else %}
+                        <span style="font-size:10.5px; color:#64748b; font-weight:normal;" title="Price excludes GST">(Excl. GST)</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if p.stock > 10 %}
+                        <span class="badge-stock badge-stock--in">{{ p.stock }} in stock</span>
+                      {% elif p.stock > 0 %}
+                        <span class="badge-stock badge-stock--low">{{ p.stock }} low stock</span>
+                      {% else %}
+                        <span class="badge-stock badge-stock--out">0 out of stock</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if p.tax_category == 'TAXABLE' %}
+                        <span class="badge-tax badge-tax--taxable">
+                          {{ p.gst_rate }}% GST
+                          {% if p.cess_rate > 0 %}+ {{ p.cess_rate }}% Cess{% endif %}
+                        </span>
+                      {% elif p.tax_category == 'EXEMPT' %}
+                        <span class="badge-tax badge-tax--exempt">Exempt (0%)</span>
+                      {% elif p.tax_category == 'NIL_RATED' %}
+                        <span class="badge-tax badge-tax--nil">Nil-Rated (0%)</span>
+                      {% elif p.tax_category == 'NON_GST' %}
+                        <span class="badge-tax badge-tax--nongst">Non-GST</span>
+                      {% else %}
+                        <span class="badge-tax">{{ p.gst_rate }}%</span>
+                      {% endif %}
+                    </td>
+                    <td style="text-align: right; white-space: nowrap;">
+                      <a href="{% url 'edit_product' p.id %}" class="btn-action btn-action--edit" title="Edit Product">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        Edit
+                      </a>
+                      <button type="button" class="btn-action btn-action--delete" onclick="openDeleteProductModal('{{ p.id }}', '{{ p.name|escapejs }}')" title="Delete Product">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% if page_obj.has_other_pages %}
+            <div class="pagination-bar">
+              <div style="font-size:13px; color:#64748b;">
+                Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ total_count }} products
+              </div>
+              <div class="pagination-links">
+                {% if page_obj.has_previous %}
+                  <a href="?{% if search %}q={{ search }}&{% endif %}page=1" class="page-btn" title="First page">&laquo;</a>
+                  <a href="?{% if search %}q={{ search }}&{% endif %}page={{ page_obj.previous_page_number }}" class="page-btn">Previous</a>
+                {% else %}
+                  <span class="page-btn disabled">&laquo;</span>
+                  <span class="page-btn disabled">Previous</span>
+                {% endif %}
+
+                {% for pnum in page_obj.paginator.page_range %}
+                  {% if pnum == page_obj.number %}
+                    <span class="page-btn active">{{ pnum }}</span>
+                  {% elif pnum > page_obj.number|add:"-3" and pnum < page_obj.number|add:"3" %}
+                    <a href="?{% if search %}q={{ search }}&{% endif %}page={{ pnum }}" class="page-btn">{{ pnum }}</a>
+                  {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                  <a href="?{% if search %}q={{ search }}&{% endif %}page={{ page_obj.next_page_number }}" class="page-btn">Next</a>
+                  <a href="?{% if search %}q={{ search }}&{% endif %}page={{ page_obj.paginator.num_pages }}" class="page-btn" title="Last page">&raquo;</a>
+                {% else %}
+                  <span class="page-btn disabled">Next</span>
+                  <span class="page-btn disabled">&raquo;</span>
+                {% endif %}
+              </div>
+            </div>
+          {% endif %}
+
+        {% elif search %}
+          <div class="empty-state">
+            <div class="empty-state-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </div>
+            <div class="empty-state-title">No products found</div>
+            <p class="empty-state-desc">
+              No products match your search "{{ search }}". Try searching with a different product name, category, or HSN code.
+            </p>
+            <a href="{% url 'product_list' %}" class="btn btn-ghost" style="margin-top:12px;">
+              Clear Search
+            </a>
+          </div>
+        {% else %}
+          <div class="empty-state">
+            <div class="empty-state-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+            </div>
+            <div class="empty-state-title">No products added yet</div>
+            <p class="empty-state-desc">
+              Get started by adding your first product with verified Indian GST rate and HSN classification.
+            </p>
+            <a href="{% url 'add_product' %}" class="btn btn-primary btn-primary--dist" style="margin-top:12px;">
+              Add Your First Product
+            </a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+    <div class="modal-backdrop" id="deleteProductModal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="deleteProdModalTitle">
+      <div class="modal-card">
+        <div class="modal-icon-wrap modal-icon-wrap--danger">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+        </div>
+        <h3 class="modal-title" id="deleteProdModalTitle">Delete Product</h3>
+        <p class="modal-desc">
+          Are you sure you want to delete product <strong id="deleteProductName"></strong>? This will remove it from your inventory. Historical invoices containing this product will not be affected.
+        </p>
+        <form id="deleteProductForm" method="POST" action="">
+          {% csrf_token %}
+          <div class="modal-actions">
+            <button type="button" class="btn btn-ghost" onclick="closeDeleteProductModal()">Cancel</button>
+            <button type="submit" class="btn" style="background:#dc2626; color:#ffffff;">Delete Product</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      function openDeleteProductModal(productId, productName) {
+        var modal = document.getElementById('deleteProductModal');
+        var nameEl = document.getElementById('deleteProductName');
+        var form = document.getElementById('deleteProductForm');
+        nameEl.textContent = productName;
+        form.action = '/distributor/products/' + productId + '/delete/';
+        modal.style.display = 'flex';
+      }
+
+      function closeDeleteProductModal() {
+        var modal = document.getElementById('deleteProductModal');
+        modal.style.display = 'none';
+      }
+
+      window.addEventListener('click', function(e) {
+        var modal = document.getElementById('deleteProductModal');
+        if (e.target === modal) {
+          closeDeleteProductModal();
+        }
+      });
+
+      window.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          closeDeleteProductModal();
+        }
+      });
+    </script>
+
+    <footer class="dash-footer">
+      &copy; {% now "Y" %} Billing System &mdash; All rights reserved.
+    </footer>
+
+  </main>
+</div>
+
+</body>
+</html>

@@ -12,8 +12,6 @@
 <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar(false)"></div>
 
 <div class="app-shell">
-
-  <!-- ===================== SIDEBAR ===================== -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-head">
       <div class="brand">
@@ -32,15 +30,20 @@
         Dashboard
       </a>
 
-      <div class="sidebar-section-label">Billing</div>
+      <div class="sidebar-section-label">Billing & Inventory</div>
       <a class="nav-item" onclick="showView('view-generate', this)">
         <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM19 14h2v2h-2zM14 19h2v2h-2zM19 19h2v2h-2z"/></svg>
         Generate Bill
       </a>
+      <a class="nav-item" href="{% url 'product_list' %}">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+        Product Catalog
+        <span class="count">{{ product_count|default:"0" }}</span>
+      </a>
       <a class="nav-item" onclick="showView('view-invoices', this)">
         <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 3h10a1 1 0 0 1 1 1v16l-3-2-2 2-2-2-2 2-2-2-1 1V4a1 1 0 0 1 1-1z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>
         My Invoices
-        <span class="count">18</span>
+        <span class="count">{{ invoice_count|default:"0" }}</span>
       </a>
       <a class="nav-item" onclick="showView('view-payments', this)">
         <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
@@ -58,6 +61,7 @@
       </a>
     </nav>
 
+
     <div class="sidebar-foot">
       <div class="role-switch">
         <span class="qr-mark" style="width:16px;height:16px;"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span>
@@ -65,8 +69,6 @@
       </div>
     </div>
   </aside>
-
-  <!-- ===================== MAIN ===================== -->
   <div class="main">
     <header class="topbar">
       <button class="menu-toggle" onclick="toggleSidebar()" aria-label="Toggle menu">
@@ -100,8 +102,6 @@
     </header>
 
     <main class="content">
-
-      <!-- ===================== DASHBOARD ===================== -->
       <section class="view active" id="view-dashboard">
         <div class="section-head">
           <div>
@@ -179,8 +179,6 @@
           </div>
         </div>
       </section>
-
-      <!-- ===================== GENERATE BILL ===================== -->
       <section class="view" id="view-generate">
         <div class="section-head">
           <div>
@@ -191,50 +189,120 @@
 
         <div class="grid span-2-1">
           <div class="card card-pad">
-            <div class="field"><label>Customer name</label><input type="text" id="genCustomer" placeholder="e.g. Shree Umiya Store" value="Shree Umiya Store"></div>
             <div class="field-row">
-              <div class="field"><label>Customer phone</label><input type="tel" id="genPhone" placeholder="+91" value="+91 90000 11122"></div>
+              <div class="field" style="flex:2;">
+                <label>Customer Name</label>
+                <input type="text" id="genCustomer" list="customerDataList" placeholder="Select customer or enter name" value="{% if customers %}{{ customers.0.name }}{% else %}Walk-in Customer{% endif %}" onchange="onCustomerSelect(this.value)">
+                <datalist id="customerDataList">
+                  {% for c in customers %}
+                    <option value="{{ c.name }}" data-id="{{ c.id }}" data-phone="{{ c.phone }}">{{ c.phone }}</option>
+                  {% endfor %}
+                </datalist>
+              </div>
+              <div class="field" style="flex:1;">
+                <label>Place of Supply</label>
+                <select id="genSupplyType" onchange="renderItems()" style="padding:9px 12px; border:1px solid var(--line); border-radius:var(--radius-sm); font-size:13px; width:100%; background:var(--bg-card); color:inherit;">
+                  <option value="intra">Intra-State (CGST + SGST)</option>
+                  <option value="inter">Inter-State (IGST)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="field-row">
+              <div class="field"><label>Customer phone</label><input type="tel" id="genPhone" placeholder="+91" value="{% if customers %}{{ customers.0.phone }}{% else %}+91 9876543210{% endif %}"></div>
               <div class="field"><label>Due date</label><input type="date" id="genDue"></div>
             </div>
 
             <div class="field">
-              <label>Items</label>
+              <div class="flex justify-between items-center" style="margin-bottom:8px;">
+                <label style="margin:0;">Line Items &amp; Applicable GST Slabs</label>
+                <span class="text-muted" style="font-size:11.5px;">Auto-calculated per CBIC schedules</span>
+              </div>
               <div class="table-wrap" style="border:1px solid var(--line); border-radius:var(--radius-sm);">
                 <table>
-                  <thead><tr><th>Item</th><th>Qty</th><th>Rate</th><th>Total</th></tr></thead>
+                  <thead>
+                    <tr>
+                      <th style="min-width:140px;">Item / Product</th>
+                      <th>HSN</th>
+                      <th>Qty</th>
+                      <th>Rate</th>
+                      <th>GST</th>
+                      <th>Taxable</th>
+                      <th>Total</th>
+                      <th></th>
+                    </tr>
+                  </thead>
                   <tbody id="itemsBody"></tbody>
                 </table>
               </div>
-              <button class="btn btn-ghost btn-sm mt-8" onclick="addItemRow()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-                Add item
-              </button>
+              <div class="flex gap-8 mt-8">
+                <button type="button" class="btn btn-ghost btn-sm" onclick="addItemRow()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                  Add Custom Item
+                </button>
+                {% if products %}
+                  <select id="quickAddProduct" onchange="addSelectedProduct(this)" class="btn btn-ghost btn-sm" style="appearance:auto; max-width:220px; font-size:12.5px;">
+                    <option value="">+ Add from Catalog...</option>
+                    {% for p in products %}
+                      <option value="{{ p.id }}">{{ p.name }} (₹{{ p.price }}, GST {{ p.gst_rate }}%)</option>
+                    {% endfor %}
+                  </select>
+                {% endif %}
+              </div>
             </div>
 
-            <div class="field"><label>Note (optional)</label><textarea id="genNote" placeholder="e.g. August stock replenishment"></textarea></div>
-
-            <div class="flex justify-between items-center mt-16" style="border-top:1px solid var(--line); padding-top:16px;">
-              <span class="text-muted" style="font-size:13px;">Bill total</span>
-              <span class="cell-amount" style="font-size:20px;" id="genTotal">₹0</span>
+            <div class="field"><label>Note (optional)</label><textarea id="genNote" placeholder="e.g. Terms: 30 days payment, Delivery terms..."></textarea></div>
+            <div style="border-top:1px solid var(--line); padding-top:14px; margin-top:16px;">
+              <div class="flex justify-between items-center" style="font-size:12.5px; padding:3px 0; color:var(--text-muted);">
+                <span>Taxable Value (Subtotal):</span>
+                <span id="genTaxable">₹0.00</span>
+              </div>
+              <div class="flex justify-between items-center" id="cgstRow" style="font-size:12.5px; padding:3px 0; color:var(--text-muted);">
+                <span id="cgstLabel">CGST:</span>
+                <span id="genCgst">₹0.00</span>
+              </div>
+              <div class="flex justify-between items-center" id="sgstRow" style="font-size:12.5px; padding:3px 0; color:var(--text-muted);">
+                <span id="sgstLabel">SGST / UTGST:</span>
+                <span id="genSgst">₹0.00</span>
+              </div>
+              <div class="flex justify-between items-center" id="igstRow" style="font-size:12.5px; padding:3px 0; color:var(--text-muted); display:none;">
+                <span id="igstLabel">IGST:</span>
+                <span id="genIgst">₹0.00</span>
+              </div>
+              <div class="flex justify-between items-center" id="cessSummaryRow" style="font-size:12.5px; padding:3px 0; color:var(--text-muted); display:none;">
+                <span>Compensation Cess:</span>
+                <span id="genCess">₹0.00</span>
+              </div>
+              <div class="flex justify-between items-center" style="font-size:12px; padding:3px 0; color:var(--text-muted);">
+                <span>Round-off (Sec 170):</span>
+                <span id="genRoundOff">₹0.00</span>
+              </div>
+              <div class="flex justify-between items-center mt-8" style="border-top:1px dashed var(--line); padding-top:10px;">
+                <span style="font-weight:600; font-size:14px;">Invoice Grand Total:</span>
+                <span class="cell-amount" style="font-size:22px;" id="genTotal">₹0</span>
+              </div>
             </div>
           </div>
 
           <div class="card card-pad">
-            <h3 class="mt-0" style="margin-bottom:14px; font-size:14px;">Live preview</h3>
+            <h3 class="mt-0" style="margin-bottom:14px; font-size:14px;">Live Invoice &amp; QR Preview</h3>
             <div class="qr-box">
-              <span class="stamp">Preview</span>
+              <span class="stamp">UPI / BharatQR</span>
               <div class="qr-canvas-wrap" id="genQrWrap"></div>
-              <div class="qr-caption">Generates automatically as you type</div>
+              <div class="qr-caption" id="qrCaption">Scan to pay exact GST bill</div>
             </div>
-            <button class="btn btn-primary btn-block mt-16" onclick="generateBill()">
+            <div style="background:var(--bg-main, #f8fafc); border:1px solid var(--line); border-radius:6px; padding:12px; margin-top:14px; font-size:12px;">
+              <div style="font-weight:600; margin-bottom:4px;" id="prevCustName">Customer: Shree Umiya Store</div>
+              <div style="color:var(--text-muted);" id="prevSupplyText">Intra-State (CGST + SGST)</div>
+              <div style="margin-top:6px; font-weight:700; color:var(--teal);" id="prevGrandTotal">Total Payable: ₹0</div>
+            </div>
+            <button class="btn btn-primary btn-block mt-16" id="saveBillBtn" onclick="generateBill()">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
-              Save &amp; generate final bill
+              Save &amp; Generate Final Bill
             </button>
           </div>
         </div>
       </section>
-
-      <!-- ===================== MY INVOICES ===================== -->
       <section class="view" id="view-invoices">
         <div class="section-head">
           <div>
@@ -261,8 +329,6 @@
           </div>
         </div>
       </section>
-
-      <!-- ===================== PAYMENTS RECEIVED ===================== -->
       <section class="view" id="view-payments">
         <div class="section-head">
           <div>
@@ -382,13 +448,30 @@ window.__pageTitles = {
   'view-payments':   { eyebrow: 'Billing',  title: 'Payments Received' },
 };
 
-const MY_INVOICES = [
+window.__PRODUCTS = {{ products_json|safe|default:"[]" }};
+
+function getCsrfToken() {
+  const cookie = document.cookie.split('; ').find(row => row.startsWith('csrftoken='));
+  return cookie ? cookie.split('=')[1] : '';
+}
+
+const DB_INVOICES = [
+  {% for inv in invoices %}
+    {
+      number: '{{ inv.invoice_number }}',
+      customer: '{{ inv.customer_name|default:"Customer" }}',
+      amount: {{ inv.grand_total }},
+      due: '{{ inv.due_date|default:inv.invoice_date|date:"d M Y" }}',
+      status: '{{ inv.status }}'
+    },
+  {% endfor %}
+];
+
+const MY_INVOICES = DB_INVOICES.length > 0 ? DB_INVOICES : [
   { number: 'INV-3021', customer: 'Shree Umiya Store', amount: 12500, due: '02 Sep 2026', status: 'pending' },
   { number: 'INV-3015', customer: 'Sundar Kirana',      amount: 8200,  due: '28 Aug 2026', status: 'paid' },
   { number: 'INV-3009', customer: 'Balaji Traders',     amount: 21300, due: '20 Aug 2026', status: 'overdue' },
   { number: 'INV-3004', customer: 'New India Mart',     amount: 5400,  due: '30 Aug 2026', status: 'paid' },
-  { number: 'INV-2998', customer: 'City Wholesale',     amount: 15600, due: '18 Aug 2026', status: 'overdue' },
-  { number: 'INV-2991', customer: 'Om Provisions',      amount: 9400,  due: '05 Sep 2026', status: 'pending' },
 ];
 
 const PAYMENTS = [
@@ -462,10 +545,42 @@ function renderBars(){
 let itemSeq = 0;
 let items = [];
 
-function addItemRow(name, qty, rate){
+function onCustomerSelect(val) {
+  const options = document.querySelectorAll('#customerDataList option');
+  for(let opt of options) {
+    if(opt.value === val) {
+      const phone = opt.dataset.phone;
+      if(phone) document.getElementById('genPhone').value = phone;
+      break;
+    }
+  }
+  updateLivePreview();
+}
+
+function addItemRow(name, qty, rate, hsn, gst_rate, cess_rate, prod_id, price_includes_gst){
   itemSeq++;
-  items.push({ id: itemSeq, name: name || '', qty: qty || 1, rate: rate || 0 });
+  items.push({
+    id: itemSeq,
+    product_id: prod_id || null,
+    name: name || '',
+    hsn: hsn || '1006',
+    qty: qty || 1,
+    rate: rate !== undefined ? rate : 100,
+    gst_rate: gst_rate !== undefined ? gst_rate : 5,
+    cess_rate: cess_rate || 0,
+    price_includes_gst: !!price_includes_gst,
+  });
   renderItems();
+}
+
+function addSelectedProduct(selectEl){
+  const prodId = selectEl.value;
+  if(!prodId) return;
+  const p = window.__PRODUCTS.find(x => String(x.id) === String(prodId));
+  if(p){
+    addItemRow(p.name, 1, p.price, p.hsn_code, p.gst_rate, p.cess_rate, p.id, p.price_includes_gst);
+  }
+  selectEl.value = '';
 }
 
 function removeItemRow(id){
@@ -476,46 +591,160 @@ function removeItemRow(id){
 function updateItem(id, field, value){
   const item = items.find(i => i.id === id);
   if(!item) return;
-  item[field] = field === 'name' ? value : Number(value) || 0;
+  if(field === 'name' || field === 'hsn'){
+    item[field] = value;
+  } else {
+    item[field] = Number(value) || 0;
+  }
   renderItems(true);
+}
+
+function computeItemGst(item, isInterstate){
+  const price = item.rate;
+  const qty = item.qty;
+  const gst_rate = item.gst_rate;
+  const cess_rate = item.cess_rate;
+  const isInclusive = item.price_includes_gst;
+
+  let gross = price * qty;
+  let taxable = gross;
+  const totalTaxRate = gst_rate + cess_rate;
+
+  if(isInclusive && totalTaxRate > 0){
+    taxable = gross / (1 + (totalTaxRate / 100));
+  }
+
+  let cgst = 0, sgst = 0, igst = 0;
+  if(isInterstate){
+    igst = taxable * (gst_rate / 100);
+  } else {
+    cgst = taxable * (gst_rate / 200);
+    sgst = taxable * (gst_rate / 200);
+  }
+  let cess = taxable * (cess_rate / 100);
+  let lineTotal = taxable + cgst + sgst + igst + cess;
+
+  return { taxable, cgst, sgst, igst, cess, lineTotal };
 }
 
 function renderItems(skipRebuildFocus){
   const body = document.getElementById('itemsBody');
   if(!body) return;
-  body.innerHTML = items.map(i => `
-    <tr>
-      <td><input type="text" value="${i.name}" placeholder="Item name" oninput="updateItem(${i.id},'name',this.value)" style="border:none; width:100%; font-size:13px; padding:4px;"></td>
-      <td><input type="number" min="1" value="${i.qty}" oninput="updateItem(${i.id},'qty',this.value)" style="border:none; width:56px; font-size:13px; padding:4px;"></td>
-      <td><input type="number" min="0" value="${i.rate}" oninput="updateItem(${i.id},'rate',this.value)" style="border:none; width:80px; font-size:13px; padding:4px;"></td>
-      <td class="cell-amount">${fmtCurrency(i.qty * i.rate)}</td>
-      <td><button class="icon-action" style="border:none; width:24px; height:24px;" onclick="removeItemRow(${i.id})" title="Remove">✕</button></td>
-    </tr>
-  `).join('');
-  updateTotal();
-  updateGenQr();
+  const isInterstate = document.getElementById('genSupplyType').value === 'inter';
+
+  body.innerHTML = items.map(i => {
+    const calc = computeItemGst(i, isInterstate);
+    return `
+      <tr>
+        <td>
+          <input type="text" value="${i.name}" placeholder="Product name" oninput="updateItem(${i.id},'name',this.value)" style="border:1px solid var(--line); border-radius:4px; width:100%; font-size:12.5px; padding:5px 7px;">
+        </td>
+        <td>
+          <input type="text" value="${i.hsn}" placeholder="HSN" oninput="updateItem(${i.id},'hsn',this.value)" style="border:1px solid var(--line); border-radius:4px; width:65px; font-size:12px; font-family:monospace; padding:5px;">
+        </td>
+        <td>
+          <input type="number" min="1" value="${i.qty}" oninput="updateItem(${i.id},'qty',this.value)" style="border:1px solid var(--line); border-radius:4px; width:52px; font-size:12.5px; padding:5px;">
+        </td>
+        <td>
+          <input type="number" min="0" step="0.01" value="${i.rate}" oninput="updateItem(${i.id},'rate',this.value)" style="border:1px solid var(--line); border-radius:4px; width:75px; font-size:12.5px; padding:5px;">
+        </td>
+        <td>
+          <select onchange="updateItem(${i.id},'gst_rate',this.value)" style="border:1px solid var(--line); border-radius:4px; width:72px; font-size:12px; padding:4px;">
+            <option value="0" ${i.gst_rate===0?'selected':''}>0%</option>
+            <option value="0.25" ${i.gst_rate===0.25?'selected':''}>0.25%</option>
+            <option value="3" ${i.gst_rate===3?'selected':''}>3%</option>
+            <option value="5" ${i.gst_rate===5?'selected':''}>5%</option>
+            <option value="12" ${i.gst_rate===12?'selected':''}>12%</option>
+            <option value="18" ${i.gst_rate===18?'selected':''}>18%</option>
+            <option value="28" ${i.gst_rate===28?'selected':''}>28%</option>
+          </select>
+        </td>
+        <td class="text-muted" style="font-size:12px; font-family:monospace;">₹${calc.taxable.toFixed(2)}</td>
+        <td class="cell-amount" style="font-weight:600;">₹${calc.lineTotal.toFixed(2)}</td>
+        <td>
+          <button type="button" class="icon-action" style="border:none; width:22px; height:22px; color:#ef4444;" onclick="removeItemRow(${i.id})" title="Remove item">✕</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  calculateInvoiceTotals();
 }
 
-function billTotal(){
-  return items.reduce((sum, i) => sum + (i.qty * i.rate), 0);
+function calculateInvoiceTotals(){
+  const isInterstate = document.getElementById('genSupplyType').value === 'inter';
+  let totalTaxable = 0, totalCgst = 0, totalSgst = 0, totalIgst = 0, totalCess = 0;
+
+  items.forEach(item => {
+    const calc = computeItemGst(item, isInterstate);
+    totalTaxable += calc.taxable;
+    totalCgst += calc.cgst;
+    totalSgst += calc.sgst;
+    totalIgst += calc.igst;
+    totalCess += calc.cess;
+  });
+
+  const unrounded = totalTaxable + totalCgst + totalSgst + totalIgst + totalCess;
+  const roundedGrandTotal = Math.round(unrounded);
+  const roundOff = roundedGrandTotal - unrounded;
+
+  // Update summary UI
+  document.getElementById('genTaxable').textContent = '₹' + totalTaxable.toFixed(2);
+
+  const cgstRow = document.getElementById('cgstRow');
+  const sgstRow = document.getElementById('sgstRow');
+  const igstRow = document.getElementById('igstRow');
+  const cessRow = document.getElementById('cessSummaryRow');
+
+  if(isInterstate){
+    cgstRow.style.display = 'none';
+    sgstRow.style.display = 'none';
+    igstRow.style.display = 'flex';
+    document.getElementById('genIgst').textContent = '₹' + totalIgst.toFixed(2);
+  } else {
+    cgstRow.style.display = 'flex';
+    sgstRow.style.display = 'flex';
+    igstRow.style.display = 'none';
+    document.getElementById('genCgst').textContent = '₹' + totalCgst.toFixed(2);
+    document.getElementById('genSgst').textContent = '₹' + totalSgst.toFixed(2);
+  }
+
+  if(totalCess > 0){
+    cessRow.style.display = 'flex';
+    document.getElementById('genCess').textContent = '₹' + totalCess.toFixed(2);
+  } else {
+    cessRow.style.display = 'none';
+  }
+
+  document.getElementById('genRoundOff').textContent = (roundOff >= 0 ? '+₹' : '-₹') + Math.abs(roundOff).toFixed(2);
+  document.getElementById('genTotal').textContent = '₹' + roundedGrandTotal.toLocaleString('en-IN');
+
+  updateLivePreview(roundedGrandTotal, isInterstate);
 }
 
-function updateTotal(){
-  const el = document.getElementById('genTotal');
-  if(el) el.textContent = fmtCurrency(billTotal());
+function updateLivePreview(grandTotal, isInterstate){
+  if(grandTotal === undefined){
+    calculateInvoiceTotals();
+    return;
+  }
+  const custName = document.getElementById('genCustomer').value.trim() || 'Walk-in Customer';
+  document.getElementById('prevCustName').textContent = 'Customer: ' + custName;
+  document.getElementById('prevSupplyText').textContent = isInterstate ? 'Inter-State Supply (IGST)' : 'Intra-State Supply (CGST + SGST)';
+  document.getElementById('prevGrandTotal').textContent = 'Total Payable: ' + fmtCurrency(grandTotal);
+
+  updateGenQr(grandTotal);
 }
 
-function updateGenQr(){
+function updateGenQr(total){
   const wrap = document.getElementById('genQrWrap');
   if(!wrap) return;
   wrap.innerHTML = '';
-  const total = billTotal();
-  if(total <= 0 || !window.QRCode) {
+  if(!total || total <= 0 || !window.QRCode) {
     wrap.innerHTML = '<div style="width:168px;height:168px;display:flex;align-items:center;justify-content:center;color:var(--text-faint);font-size:11.5px;text-align:center;padding:10px;">Add an item to preview the QR</div>';
     return;
   }
   new QRCode(wrap, {
-    text: `upi://pay?pa=karanmehta@okhdfc&pn=KaranMehta&am=${total}&tn=BILL`,
+    text: `upi://pay?pa=karanmehta@okhdfc&pn=KaranMehta&am=${total}&tn=GSTINVOICE`,
     width: 168, height: 168,
     colorDark: '#16213E', colorLight: '#ffffff',
     correctLevel: QRCode.CorrectLevel.M
@@ -525,15 +754,80 @@ function updateGenQr(){
 function generateBill(){
   const customerEl = document.getElementById('genCustomer');
   const customer = customerEl ? customerEl.value.trim() : '';
-  if(!customer || items.length === 0 || billTotal() <= 0){
+  if(!customer || items.length === 0){
     showToast('Add a customer and at least one item first', 'error');
     return;
   }
-  const number = 'INV-' + (3022 + Math.floor(Math.random()*20));
-  MY_INVOICES.unshift({ number, customer, amount: billTotal(), due: document.getElementById('genDue').value || 'Not set', status: 'pending' });
-  renderRecentInvoices();
-  renderAllInvoices();
-  showToast(`${number} generated for ${fmtCurrency(billTotal())} — QR ready to share`, 'success');
+
+  const isInterstate = document.getElementById('genSupplyType').value === 'inter';
+  const dueDate = document.getElementById('genDue').value;
+  const notes = document.getElementById('genNote').value;
+
+  const btn = document.getElementById('saveBillBtn');
+  btn.disabled = true;
+  btn.textContent = 'Saving Invoice...';
+
+  // Find customer ID if selected from options
+  let customerId = null;
+  const options = document.querySelectorAll('#customerDataList option');
+  for(let opt of options){
+    if(opt.value === customer){
+      customerId = opt.dataset.id;
+      break;
+    }
+  }
+
+  const payload = {
+    customer_id: customerId,
+    customer_name: customer,
+    place_of_supply: isInterstate ? 'Inter-State' : 'Intra-State',
+    is_interstate: isInterstate,
+    due_date: dueDate,
+    notes: notes,
+    items: items.map(i => ({
+      product_id: i.product_id,
+      name: i.name,
+      hsn_code: i.hsn,
+      qty: i.qty,
+      rate: i.rate,
+      gst_rate: i.gst_rate,
+      cess_rate: i.cess_rate,
+      price_includes_gst: i.price_includes_gst,
+    })),
+  };
+
+  fetch('/api/save-invoice/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCsrfToken(),
+    },
+    body: JSON.stringify(payload)
+  })
+  .then(res => res.json())
+  .then(data => {
+    btn.disabled = false;
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg> Save &amp; Generate Final Bill';
+    if(data.success){
+      MY_INVOICES.unshift({
+        number: data.invoice_number,
+        customer: customer,
+        amount: Number(data.grand_total),
+        due: dueDate || 'Immediate',
+        status: 'pending'
+      });
+      renderRecentInvoices();
+      renderAllInvoices();
+      showToast(`${data.invoice_number} saved for ${fmtCurrency(data.grand_total)} — QR ready!`, 'success');
+    } else {
+      showToast(data.error || 'Failed to save invoice', 'error');
+    }
+  })
+  .catch(err => {
+    btn.disabled = false;
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg> Save &amp; Generate Final Bill';
+    showToast('Network error saving invoice', 'error');
+  });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -541,8 +835,20 @@ document.addEventListener('DOMContentLoaded', () => {
   renderAllInvoices();
   renderPayments();
   renderBars();
-  addItemRow('Basmati Rice 25kg', 4, 1450);
-  addItemRow('Sunflower Oil 15L', 2, 2600);
+
+  // If we have saved catalog products, populate initial rows from them!
+  if(window.__PRODUCTS && window.__PRODUCTS.length >= 2){
+    const p1 = window.__PRODUCTS[0];
+    const p2 = window.__PRODUCTS[1];
+    addItemRow(p1.name, 4, p1.price, p1.hsn_code, p1.gst_rate, p1.cess_rate, p1.id, p1.price_includes_gst);
+    addItemRow(p2.name, 2, p2.price, p2.hsn_code, p2.gst_rate, p2.cess_rate, p2.id, p2.price_includes_gst);
+  } else if(window.__PRODUCTS && window.__PRODUCTS.length === 1){
+    const p1 = window.__PRODUCTS[0];
+    addItemRow(p1.name, 3, p1.price, p1.hsn_code, p1.gst_rate, p1.cess_rate, p1.id, p1.price_includes_gst);
+  } else {
+    addItemRow('Basmati Rice 25kg (Pre-packaged)', 4, 1450, '1006', 5, 0, null, false);
+    addItemRow('Sunflower Oil 15L', 2, 2600, '1512', 5, 0, null, false);
+  }
 
   const dueField = document.getElementById('genDue');
   if(dueField){
@@ -551,8 +857,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const custInput = document.getElementById('genCustomer');
-  if(custInput) custInput.addEventListener('input', updateGenQr);
+  if(custInput) custInput.addEventListener('input', () => updateLivePreview());
 });
+
 </script>
 </body>
 </html>

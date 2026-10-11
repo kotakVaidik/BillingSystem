@@ -6,13 +6,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Enter the OTP sent to your registered email to verify your identity." />
   <title>Verify OTP — Billing System</title>
-
-  <!-- Google Fonts: Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-
-  <!-- Shared Login Stylesheet -->
   <link rel="stylesheet" href="{% static 'css/login.css' %}" />
 </head>
 <body>
@@ -21,8 +17,6 @@
 
   <main class="form-panel">
     <div class="form-container">
-
-      <!-- Step Indicator -->
       <div class="step-indicator" aria-label="Password reset steps">
         <div class="step step--done">
           <div class="step-dot" aria-label="Step 1 complete"></div>
@@ -39,8 +33,6 @@
           <span class="step-label">New Password</span>
         </div>
       </div>
-
-      <!-- Role Badge -->
       <div class="role-badge role-badge--distributor" aria-label="Role: Distributor">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <rect x="1" y="3" width="15" height="13" rx="1"/>
@@ -50,8 +42,6 @@
         </svg>
         Distributor Portal
       </div>
-
-      <!-- Heading -->
       <h2 class="form-heading">Verify OTP</h2>
       <p class="form-subheading">
         A 6-digit OTP has been sent to
@@ -60,8 +50,6 @@
       </p>
 
       <div class="form-divider" aria-hidden="true"></div>
-
-      <!-- Messages -->
       {% if messages %}
         {% for message in messages %}
           {% if message.tags == 'error' %}
@@ -84,8 +72,6 @@
           {% endif %}
         {% endfor %}
       {% endif %}
-
-      <!-- OTP Form -->
       <form
         id="verifyOtpForm"
         method="POST"
@@ -144,8 +130,6 @@
         </div>
 
       </form>
-
-      <!-- Resend OTP -->
       <div class="otp-resend-row">
         <span class="otp-resend-label">Didn't receive the OTP?</span>
         <form method="POST" action="{% url 'distributor_resend_otp' %}" id="resendOtpForm" style="display:inline;">

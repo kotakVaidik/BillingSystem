@@ -1,14 +1,6 @@
-"""
-billing_app/views.py
-
-Authentication views for:
-  - Admin login / logout
-  - Distributor login
-  - Distributor forgot-password → OTP → reset-password flow
-  - Distributor registration
-"""
-
+import json
 import re
+from decimal import Decimal, InvalidOperation
 
 from django.conf import settings
 from django.contrib import messages
@@ -16,26 +8,30 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group, User
 from django.core.mail import send_mail
+from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.db.models import Q
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
-from .models import Customer, DistributorProfile, OTPToken
+from .gst_utils import (
+    TAX_CATEGORY_CHOICES,
+    TAX_CATEGORY_TAXABLE,
+    ZERO_TAX_CATEGORIES,
+    VALID_GST_RATES,
+    lookup_hsn,
+    validate_hsn_code,
+    calculate_gst_breakdown,
+    round_currency,
+    round_to_rupee,
+)
+from .models import Customer, DistributorProfile, OTPToken, Product, Invoice, InvoiceItem
 
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
 
 ALLOWED_EMAIL_DOMAINS = {'gmail.com', 'outlook.com'}
 
-# Session keys
-SESSION_RESET_EMAIL    = 'pwd_reset_email'       # email under reset
-SESSION_OTP_VERIFIED   = 'otp_verified'          # True once OTP passes
-
-
-# ---------------------------------------------------------------------------
-# Shared validators
-# ---------------------------------------------------------------------------
+SESSION_RESET_EMAIL    = 'pwd_reset_email'
+SESSION_OTP_VERIFIED   = 'otp_verified'
 
 def _validate_identifier(identifier):
     """
@@ -112,18 +108,14 @@ def _send_otp_email(email, otp_code):
     send_mail(subject, body, settings.DEFAULT_FROM_EMAIL if hasattr(settings, 'DEFAULT_FROM_EMAIL') else 'noreply@billingsystem.local', [email])
 
 
-# ---------------------------------------------------------------------------
-# Portal Landing View
-# ---------------------------------------------------------------------------
+
 
 def portal_home(request):
-    """Portal landing page for choosing between Admin and Distributor workspaces."""
+
     return render(request, 'portal_home.html')
 
 
-# ---------------------------------------------------------------------------
-# Admin views
-# ---------------------------------------------------------------------------
+
 
 def admin_login(request):
     early = _redirect_if_authenticated(request, 'admin')
@@ -184,9 +176,7 @@ def admin_password_reset(request):
     return render(request, 'admin/login.html')
 
 
-# ---------------------------------------------------------------------------
-# Distributor login / logout
-# ---------------------------------------------------------------------------
+
 
 def distributor_login(request):
     early = _redirect_if_authenticated(request, 'distributor')
@@ -238,9 +228,7 @@ def user_logout(request):
     return redirect('admin_login')
 
 
-# ---------------------------------------------------------------------------
-# Distributor dashboards
-# ---------------------------------------------------------------------------
+
 
 from .models import Customer, DistributorProfile, OTPToken
 
@@ -258,30 +246,60 @@ def distributor_dashboard(request):
     if not request.user.groups.filter(name='Distributor').exists():
         messages.error(request, 'Access denied.')
         return redirect('distributor_login')
-    customer_count = Customer.objects.filter(distributor=request.user).count()
-    return render(request, 'distributor/dashboard.html', {'customer_count': customer_count})
+
+    customers = Customer.objects.filter(distributor=request.user).order_by('name')
+    customer_count = customers.count()
+
+    products = Product.objects.filter(
+        Q(distributor=request.user) | Q(distributor__isnull=True),
+        is_active=True
+    ).order_by('name')
+    product_count = products.count()
+
+    products_data = [
+        {
+            'id': p.id,
+            'name': p.name,
+            'category': p.category,
+            'hsn_code': p.hsn_code,
+            'price': float(p.price),
+            'stock': p.stock,
+            'gst_rate': float(p.gst_rate),
+            'tax_category': p.tax_category,
+            'cess_rate': float(p.cess_rate),
+            'price_includes_gst': p.price_includes_gst,
+        }
+        for p in products
+    ]
+
+    invoices = Invoice.objects.filter(distributor=request.user).order_by('-invoice_date', '-id')
+    invoice_count = invoices.count()
+
+    context = {
+        'customers': customers,
+        'customer_count': customer_count,
+        'products': products,
+        'product_count': product_count,
+        'products_json': json.dumps(products_data),
+        'invoices': invoices,
+        'invoice_count': invoice_count,
+    }
+    return render(request, 'distributor/dashboard.html', context)
 
 
-# ---------------------------------------------------------------------------
-# Distributor forgot-password → OTP → reset flow
-# ---------------------------------------------------------------------------
+
+
 
 def distributor_forgot_password(request):
-    """
-    Step 1: User enters their registered email.
-    Generates an OTP, stores it in DB, sends it by email,
-    and stores the email in the session before redirecting to verify_otp.
-    """
     if request.method == 'POST':
         email = request.POST.get('email', '').strip().lower()
 
-        # Basic email format check
+
         if not email or '@' not in email:
             messages.error(request, 'Please enter a valid email address.')
             return render(request, 'distributor/forgot_password.html', {'email_value': email})
 
-        # Always show the same "success" message to prevent user enumeration.
-        # Only actually send if the user exists in the Distributor group.
+        # Show the same message regardless of whether the user exists to prevent user enumeration.
         try:
             user = User.objects.get(email__iexact=email)
             is_distributor = user.groups.filter(name='Distributor').exists()
@@ -294,10 +312,10 @@ def distributor_forgot_password(request):
             try:
                 _send_otp_email(user.email, token.otp)
             except Exception:
-                # Even if email fails in dev (console backend may raise), continue.
+
                 pass
 
-        # Store email in session (used in subsequent steps)
+
         request.session[SESSION_RESET_EMAIL]  = email
         request.session[SESSION_OTP_VERIFIED] = False
 
@@ -311,14 +329,11 @@ def distributor_forgot_password(request):
 
 
 def distributor_verify_otp(request):
-    """
-    Step 2: User enters the 6-digit OTP received by email.
-    On success, sets the session verified flag and redirects to reset_password.
-    """
+   
     email = request.session.get(SESSION_RESET_EMAIL)
 
     if not email:
-        # Session lost — send user back to start
+       
         messages.error(request, 'Your session has expired. Please start again.')
         return redirect('distributor_password_reset')
 
@@ -335,7 +350,6 @@ def distributor_verify_otp(request):
             messages.error(request, 'Invalid request. Please start again.')
             return redirect('distributor_password_reset')
 
-        # Get the most recent unused OTP for this user
         token = (
             OTPToken.objects
             .filter(user=user, is_used=False)
@@ -357,7 +371,7 @@ def distributor_verify_otp(request):
             messages.error(request, 'Incorrect OTP. Please try again.')
             return render(request, 'distributor/verify_otp.html', {'masked_email': _mask_email(email)})
 
-        # Mark OTP as used and set session flag
+      
         token.is_used = True
         token.save(update_fields=['is_used'])
         request.session[SESSION_OTP_VERIFIED] = True
@@ -369,10 +383,6 @@ def distributor_verify_otp(request):
 
 
 def distributor_resend_otp(request):
-    """
-    Resend: Invalidates all existing OTPs for the user and sends a fresh one.
-    Only responds to POST to prevent CSRF/GET resend abuse.
-    """
     if request.method != 'POST':
         return redirect('distributor_verify_otp')
 
@@ -402,10 +412,7 @@ def distributor_resend_otp(request):
 
 
 def distributor_reset_password(request):
-    """
-    Step 3: User sets a new password.
-    Requires the session OTP verified flag to be True.
-    """
+
     email    = request.session.get(SESSION_RESET_EMAIL)
     verified = request.session.get(SESSION_OTP_VERIFIED, False)
 
@@ -435,7 +442,7 @@ def distributor_reset_password(request):
         user.set_password(new_password)
         user.save()
 
-        # Clean up session keys
+
         request.session.pop(SESSION_RESET_EMAIL, None)
         request.session.pop(SESSION_OTP_VERIFIED, None)
 
@@ -445,16 +452,10 @@ def distributor_reset_password(request):
     return render(request, 'distributor/reset_password.html')
 
 
-# ---------------------------------------------------------------------------
-# Distributor Registration
-# ---------------------------------------------------------------------------
+
 
 def distributor_register(request):
-    """
-    Distributor self-registration.
-    Creates a new User, adds them to the 'Distributor' group, and saves the phone number
-    in DistributorProfile.
-    """
+  
     if request.user.is_authenticated and request.user.groups.filter(name='Distributor').exists():
         return redirect('distributor_dashboard')
 
@@ -471,40 +472,39 @@ def distributor_register(request):
             'phone_value':     phone,
         }
 
-        # --- Required field checks ---
+
         if not full_name or not email or not phone or not password or not confirm_password:
             messages.error(request, 'All fields are required.')
             return render(request, 'distributor/register.html', context)
 
-        # --- Email domain validation ---
+
         email_error = _validate_identifier(email)
         if email_error:
             messages.error(request, email_error)
             return render(request, 'distributor/register.html', context)
 
-        # --- Duplicate email check ---
+
         if User.objects.filter(email__iexact=email).exists():
             messages.error(request, 'An account with this email address already exists.')
             return render(request, 'distributor/register.html', context)
 
-        # --- Phone format check (7–15 digits, optional leading +) ---
+      
         if not re.match(r'^\+?\d{7,15}$', phone):
             messages.error(request, 'Enter a valid phone number (digits only, 7–15 characters).')
             return render(request, 'distributor/register.html', context)
 
-        # --- Password strength ---
+
         pw_error = _validate_password(password)
         if pw_error:
             messages.error(request, pw_error)
             return render(request, 'distributor/register.html', context)
 
-        # --- Password match ---
+       
         if password != confirm_password:
             messages.error(request, 'Passwords do not match.')
             return render(request, 'distributor/register.html', context)
 
-        # --- Create user ---
-        # Use email local-part as username; make unique if needed
+     
         base_username = email.split('@')[0]
         username      = base_username
         counter       = 1
@@ -512,7 +512,7 @@ def distributor_register(request):
             username = f'{base_username}{counter}'
             counter += 1
 
-        # Split full name into first / last
+      
         name_parts = full_name.split(' ', 1)
         first_name = name_parts[0]
         last_name  = name_parts[1] if len(name_parts) > 1 else ''
@@ -525,11 +525,11 @@ def distributor_register(request):
             last_name  = last_name,
         )
 
-        # Add to Distributor group (create group if it doesn't exist yet)
+       
         distributor_group, _ = Group.objects.get_or_create(name='Distributor')
         user.groups.add(distributor_group)
 
-        # Save phone in profile
+      
         DistributorProfile.objects.create(user=user, phone=phone)
 
         messages.success(
@@ -541,9 +541,7 @@ def distributor_register(request):
     return render(request, 'distributor/register.html')
 
 
-# ---------------------------------------------------------------------------
-# Utilities
-# ---------------------------------------------------------------------------
+
 
 def _mask_email(email):
     """Return a partially masked email for display, e.g. jo**@gmail.com."""
@@ -567,15 +565,9 @@ def _validate_phone(phone):
     return None
 
 
-# ---------------------------------------------------------------------------
-# Distributor Profile & Customer Management
-# ---------------------------------------------------------------------------
 
 @login_required(login_url='distributor_login')
 def distributor_profile(request):
-    """
-    Task 6: Display current distributor's profile.
-    """
     if not request.user.groups.filter(name='Distributor').exists():
         messages.error(request, 'Access denied. This page is for distributors only.')
         return redirect('distributor_login')
@@ -589,9 +581,6 @@ def distributor_profile(request):
 
 @login_required(login_url='distributor_login')
 def edit_profile(request):
-    """
-    Task 1: Update profile information for the logged-in distributor.
-    """
     if not request.user.groups.filter(name='Distributor').exists():
         messages.error(request, 'Access denied.')
         return redirect('distributor_login')
@@ -618,7 +607,7 @@ def edit_profile(request):
             messages.error(request, email_err)
             return render(request, 'distributor/edit_profile.html', context)
 
-        # Check duplicate email excluding current user
+
         if User.objects.filter(email__iexact=email).exclude(pk=request.user.pk).exists():
             messages.error(request, 'This email address is already in use by another account.')
             return render(request, 'distributor/edit_profile.html', context)
@@ -628,14 +617,12 @@ def edit_profile(request):
             messages.error(request, phone_err)
             return render(request, 'distributor/edit_profile.html', context)
 
-        # Update User
         name_parts = full_name.split(' ', 1)
         request.user.first_name = name_parts[0]
         request.user.last_name  = name_parts[1] if len(name_parts) > 1 else ''
         request.user.email      = email
         request.user.save()
 
-        # Update Profile
         profile.phone = phone
         profile.save()
 
@@ -674,9 +661,6 @@ def customer_list(request):
 
 @login_required(login_url='distributor_login')
 def add_customer(request):
-    """
-    Task 3: Add new customer associated with the logged-in distributor.
-    """
     if not request.user.groups.filter(name='Distributor').exists():
         messages.error(request, 'Access denied.')
         return redirect('distributor_login')
@@ -725,9 +709,6 @@ def add_customer(request):
 
 @login_required(login_url='distributor_login')
 def edit_customer(request, customer_id):
-    """
-    Task 5: Update existing customer details for the logged-in distributor.
-    """
     if not request.user.groups.filter(name='Distributor').exists():
         messages.error(request, 'Access denied.')
         return redirect('distributor_login')
@@ -784,9 +765,6 @@ def edit_customer(request, customer_id):
 
 @login_required(login_url='distributor_login')
 def delete_customer(request, customer_id):
-    """
-    Task 6: Delete customer record belonging to the logged-in distributor.
-    """
     if not request.user.groups.filter(name='Distributor').exists():
         messages.error(request, 'Access denied.')
         return redirect('distributor_login')
@@ -803,3 +781,514 @@ def delete_customer(request, customer_id):
         return redirect('customer_list')
 
     return redirect('customer_list')
+
+
+
+
+@login_required(login_url='distributor_login')
+def product_list(request):
+   
+    is_distributor = request.user.groups.filter(name='Distributor').exists()
+    if not (is_distributor or request.user.is_staff):
+        messages.error(request, 'Access denied. You do not have permission to view products.')
+        return redirect('distributor_login')
+
+    query = request.GET.get('q', '').strip()
+    if request.user.is_staff:
+        products_qs = Product.objects.all()
+    else:
+        products_qs = Product.objects.filter(Q(distributor=request.user) | Q(distributor__isnull=True))
+
+    if query:
+        products_qs = products_qs.filter(
+            Q(name__icontains=query) |
+            Q(category__icontains=query) |
+            Q(hsn_code__icontains=query)
+        )
+
+    products_qs = products_qs.order_by('name')
+
+   
+    paginator = Paginator(products_qs, 8)
+    page_number = request.GET.get('page')
+    try:
+        page_obj = paginator.get_page(page_number)
+    except (PageNotAnInteger, EmptyPage):
+        page_obj = paginator.get_page(1)
+
+    return render(request, 'distributor/product_list.html', {
+        'page_obj': page_obj,
+        'products': page_obj.object_list,
+        'search': query,
+        'total_count': paginator.count,
+    })
+
+
+@login_required(login_url='distributor_login')
+def add_product(request):
+    
+    is_distributor = request.user.groups.filter(name='Distributor').exists()
+    if not (is_distributor or request.user.is_staff):
+        messages.error(request, 'Access denied.')
+        return redirect('distributor_login')
+
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        category = request.POST.get('category', '').strip()
+        hsn_code = request.POST.get('hsn_code', '').strip()
+        price_raw = request.POST.get('price', '').strip()
+        stock_raw = request.POST.get('stock', '').strip()
+        gst_rate_raw = request.POST.get('gst_rate', '').strip()
+        tax_category = request.POST.get('tax_category', TAX_CATEGORY_TAXABLE).strip()
+        cess_rate_raw = request.POST.get('cess_rate', '0').strip()
+        price_includes_gst = request.POST.get('price_includes_gst') in ['true', 'on', '1', 'True']
+        description = request.POST.get('description', '').strip()
+
+        context = {
+            'name_value': name,
+            'category_value': category,
+            'hsn_code_value': hsn_code,
+            'price_value': price_raw,
+            'stock_value': stock_raw,
+            'gst_rate_value': gst_rate_raw,
+            'tax_category_value': tax_category,
+            'cess_rate_value': cess_rate_raw,
+            'price_includes_gst_value': price_includes_gst,
+            'description_value': description,
+            'tax_categories': TAX_CATEGORY_CHOICES,
+            'valid_gst_rates': [str(r) for r in VALID_GST_RATES],
+        }
+
+
+        if not name:
+            messages.error(request, 'Product name is required.')
+            return render(request, 'distributor/add_product.html', context)
+
+
+        dup_query = Product.objects.filter(name__iexact=name)
+        if not request.user.is_staff:
+            dup_query = dup_query.filter(distributor=request.user)
+        if dup_query.exists():
+            messages.error(request, f'A product named "{name}" already exists in your inventory.')
+            return render(request, 'distributor/add_product.html', context)
+
+
+        if not category:
+            messages.error(request, 'Product category is required.')
+            return render(request, 'distributor/add_product.html', context)
+
+
+        if not hsn_code:
+            messages.error(request, 'HSN code is required.')
+            return render(request, 'distributor/add_product.html', context)
+
+        clean_hsn = re.sub(r'\s+', '', hsn_code)
+        if not validate_hsn_code(clean_hsn):
+            messages.error(request, 'Enter a valid HSN code (2 to 8 numeric digits).')
+            return render(request, 'distributor/add_product.html', context)
+
+
+        try:
+            price = Decimal(price_raw)
+            if price <= Decimal('0.00'):
+                raise ValueError()
+        except (InvalidOperation, ValueError, TypeError):
+            messages.error(request, 'Price must be a valid number greater than zero.')
+            return render(request, 'distributor/add_product.html', context)
+
+
+        try:
+            stock = int(stock_raw)
+            if stock < 0:
+                raise ValueError()
+        except (ValueError, TypeError):
+            messages.error(request, 'Stock quantity must be a non-negative whole number (0 or greater).')
+            return render(request, 'distributor/add_product.html', context)
+
+
+        valid_cat_keys = [c[0] for c in TAX_CATEGORY_CHOICES]
+        if tax_category not in valid_cat_keys:
+            messages.error(request, 'Invalid tax category selected.')
+            return render(request, 'distributor/add_product.html', context)
+
+
+        try:
+            cess_rate = Decimal(cess_rate_raw or '0')
+            if cess_rate < Decimal('0.00'):
+                raise ValueError()
+        except (InvalidOperation, ValueError, TypeError):
+            messages.error(request, 'Compensation cess rate must be 0 or a positive percentage.')
+            return render(request, 'distributor/add_product.html', context)
+
+        if tax_category in ZERO_TAX_CATEGORIES:
+            gst_rate = Decimal('0.00')
+            cess_rate = Decimal('0.00')
+        else:
+            try:
+                gst_rate = Decimal(gst_rate_raw or '0')
+                if gst_rate not in VALID_GST_RATES:
+                    messages.error(request, f'GST rate {gst_rate}% is not a valid Indian GST slab (0%, 0.25%, 3%, 5%, 12%, 18%, 28%).')
+                    return render(request, 'distributor/add_product.html', context)
+            except (InvalidOperation, ValueError, TypeError):
+                messages.error(request, 'Enter a valid GST rate percentage.')
+                return render(request, 'distributor/add_product.html', context)
+
+
+        try:
+            product = Product.objects.create(
+                distributor=request.user,
+                name=name,
+                category=category,
+                hsn_code=clean_hsn,
+                price=price,
+                stock=stock,
+                gst_rate=gst_rate,
+                tax_category=tax_category,
+                cess_rate=cess_rate,
+                price_includes_gst=price_includes_gst,
+                description=description,
+            )
+        except Exception as e:
+            messages.error(request, f'Error saving product: {e}')
+            return render(request, 'distributor/add_product.html', context)
+
+        messages.success(request, f'Product "{name}" added successfully [HSN: {clean_hsn}, GST: {gst_rate}%].')
+        return redirect('product_list')
+
+    context = {
+        'tax_categories': TAX_CATEGORY_CHOICES,
+        'valid_gst_rates': [str(r) for r in VALID_GST_RATES],
+        'gst_rate_value': '18.00',
+        'stock_value': '0',
+    }
+    return render(request, 'distributor/add_product.html', context)
+
+
+@login_required(login_url='distributor_login')
+def edit_product(request, product_id):
+    is_distributor = request.user.groups.filter(name='Distributor').exists()
+    if not (is_distributor or request.user.is_staff):
+        messages.error(request, 'Access denied.')
+        return redirect('distributor_login')
+
+    if request.user.is_staff:
+        product = get_object_or_404(Product, id=product_id)
+    else:
+        product = get_object_or_404(Product, id=product_id, distributor=request.user)
+
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        category = request.POST.get('category', '').strip()
+        hsn_code = request.POST.get('hsn_code', '').strip()
+        price_raw = request.POST.get('price', '').strip()
+        stock_raw = request.POST.get('stock', '').strip()
+        gst_rate_raw = request.POST.get('gst_rate', '').strip()
+        tax_category = request.POST.get('tax_category', TAX_CATEGORY_TAXABLE).strip()
+        cess_rate_raw = request.POST.get('cess_rate', '0').strip()
+        price_includes_gst = request.POST.get('price_includes_gst') in ['true', 'on', '1', 'True']
+        description = request.POST.get('description', '').strip()
+
+        context = {
+            'product': product,
+            'name_value': name,
+            'category_value': category,
+            'hsn_code_value': hsn_code,
+            'price_value': price_raw,
+            'stock_value': stock_raw,
+            'gst_rate_value': gst_rate_raw,
+            'tax_category_value': tax_category,
+            'cess_rate_value': cess_rate_raw,
+            'price_includes_gst_value': price_includes_gst,
+            'description_value': description,
+            'tax_categories': TAX_CATEGORY_CHOICES,
+            'valid_gst_rates': [str(r) for r in VALID_GST_RATES],
+        }
+
+        if not name:
+            messages.error(request, 'Product name is required.')
+            return render(request, 'distributor/edit_product.html', context)
+
+        dup_query = Product.objects.filter(name__iexact=name).exclude(pk=product.pk)
+        if not request.user.is_staff:
+            dup_query = dup_query.filter(distributor=request.user)
+        if dup_query.exists():
+            messages.error(request, f'Another product named "{name}" already exists.')
+            return render(request, 'distributor/edit_product.html', context)
+
+        if not category:
+            messages.error(request, 'Category is required.')
+            return render(request, 'distributor/edit_product.html', context)
+
+        clean_hsn = re.sub(r'\s+', '', hsn_code)
+        if not validate_hsn_code(clean_hsn):
+            messages.error(request, 'Enter a valid HSN code (2 to 8 numeric digits).')
+            return render(request, 'distributor/edit_product.html', context)
+
+        try:
+            price = Decimal(price_raw)
+            if price <= Decimal('0.00'):
+                raise ValueError()
+        except (InvalidOperation, ValueError, TypeError):
+            messages.error(request, 'Price must be greater than zero.')
+            return render(request, 'distributor/edit_product.html', context)
+
+        try:
+            stock = int(stock_raw)
+            if stock < 0:
+                raise ValueError()
+        except (ValueError, TypeError):
+            messages.error(request, 'Stock cannot be negative.')
+            return render(request, 'distributor/edit_product.html', context)
+
+        try:
+            cess_rate = Decimal(cess_rate_raw or '0')
+            if cess_rate < Decimal('0.00'):
+                raise ValueError()
+        except (InvalidOperation, ValueError, TypeError):
+            messages.error(request, 'Cess rate must be 0 or positive.')
+            return render(request, 'distributor/edit_product.html', context)
+
+        if tax_category in ZERO_TAX_CATEGORIES:
+            gst_rate = Decimal('0.00')
+            cess_rate = Decimal('0.00')
+        else:
+            try:
+                gst_rate = Decimal(gst_rate_raw or '0')
+                if gst_rate not in VALID_GST_RATES:
+                    messages.error(request, f'GST rate {gst_rate}% is not a valid slab.')
+                    return render(request, 'distributor/edit_product.html', context)
+            except (InvalidOperation, ValueError, TypeError):
+                messages.error(request, 'Invalid GST rate.')
+                return render(request, 'distributor/edit_product.html', context)
+
+        product.name = name
+        product.category = category
+        product.hsn_code = clean_hsn
+        product.price = price
+        product.stock = stock
+        product.gst_rate = gst_rate
+        product.tax_category = tax_category
+        product.cess_rate = cess_rate
+        product.price_includes_gst = price_includes_gst
+        product.description = description
+        product.save()
+
+        messages.success(request, f'Product "{name}" updated successfully.')
+        return redirect('product_list')
+
+    context = {
+        'product': product,
+        'name_value': product.name,
+        'category_value': product.category,
+        'hsn_code_value': product.hsn_code,
+        'price_value': str(product.price),
+        'stock_value': str(product.stock),
+        'gst_rate_value': str(product.gst_rate),
+        'tax_category_value': product.tax_category,
+        'cess_rate_value': str(product.cess_rate),
+        'price_includes_gst_value': product.price_includes_gst,
+        'description_value': product.description or '',
+        'tax_categories': TAX_CATEGORY_CHOICES,
+        'valid_gst_rates': [str(r) for r in VALID_GST_RATES],
+    }
+    return render(request, 'distributor/edit_product.html', context)
+
+
+@login_required(login_url='distributor_login')
+def delete_product(request, product_id):
+    is_distributor = request.user.groups.filter(name='Distributor').exists()
+    if not (is_distributor or request.user.is_staff):
+        messages.error(request, 'Access denied.')
+        return redirect('distributor_login')
+
+    if request.user.is_staff:
+        product = get_object_or_404(Product, id=product_id)
+    else:
+        product = get_object_or_404(Product, id=product_id, distributor=request.user)
+
+    if request.method == 'POST':
+        product_name = product.name
+        product.delete()
+        messages.success(request, f'Product "{product_name}" removed from inventory.')
+        return redirect('product_list')
+
+    return redirect('product_list')
+
+
+def api_hsn_lookup(request):
+    hsn = request.GET.get('hsn', '').strip()
+    data = lookup_hsn(hsn)
+    if data:
+        return JsonResponse({
+            'found': True,
+            'is_verified': True,
+            'hsn_code': data['hsn_code'],
+            'description': data['description'],
+            'category': data['category'],
+            'gst_rate': str(data['gst_rate']),
+            'tax_category': data['tax_category'],
+            'cess_rate': str(data['cess_rate']),
+            'notification': data['notification'],
+        })
+    return JsonResponse({
+        'found': False,
+        'is_verified': False,
+        'message': 'HSN code not found in verified official catalogue. Please specify rate manually as per applicable notifications.',
+    })
+
+
+@login_required(login_url='distributor_login')
+def api_save_invoice(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST method required.'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except Exception:
+        return JsonResponse({'error': 'Invalid JSON payload.'}, status=400)
+
+    customer_id = data.get('customer_id')
+    customer_name = data.get('customer_name', '').strip()
+    place_of_supply = data.get('place_of_supply', 'Intra-State').strip()
+    is_interstate = bool(data.get('is_interstate', False))
+    notes = data.get('notes', '').strip()
+    due_date = data.get('due_date') or None
+    items_data = data.get('items', [])
+
+    if not items_data:
+        return JsonResponse({'error': 'Invoice must contain at least one line item.'}, status=400)
+
+    customer = None
+    if customer_id:
+        try:
+            customer = Customer.objects.get(id=customer_id, distributor=request.user)
+            customer_name = customer.name
+        except Customer.DoesNotExist:
+            pass
+
+    if not customer_name:
+        customer_name = 'Cash Sale'
+
+
+    today_str = timezone.now().strftime('%Y%m')
+    random_suffix = User.objects.make_random_password(length=4, allowed_chars='0123456789')
+    invoice_number = f"INV-{today_str}-{random_suffix}"
+
+    total_taxable = Decimal('0.00')
+    total_cgst = Decimal('0.00')
+    total_sgst = Decimal('0.00')
+    total_igst = Decimal('0.00')
+    total_cess = Decimal('0.00')
+
+    processed_items = []
+
+    for item in items_data:
+        prod_id = item.get('product_id')
+        name = item.get('name', 'Item').strip()
+        hsn = item.get('hsn_code', '').strip()
+        qty = int(item.get('qty', 1))
+        unit_price = Decimal(str(item.get('rate', 0)))
+        gst_rate = Decimal(str(item.get('gst_rate', 0)))
+        cess_rate = Decimal(str(item.get('cess_rate', 0)))
+        tax_category = item.get('tax_category', TAX_CATEGORY_TAXABLE)
+        price_includes_gst = bool(item.get('price_includes_gst', False))
+
+        product_obj = None
+        if prod_id:
+            try:
+                product_obj = Product.objects.get(id=prod_id)
+                name = product_obj.name
+                hsn = product_obj.hsn_code
+            except Product.DoesNotExist:
+                pass
+
+        breakdown = calculate_gst_breakdown(
+            price=unit_price,
+            quantity=Decimal(str(qty)),
+            gst_rate=gst_rate,
+            cess_rate=cess_rate,
+            tax_category=tax_category,
+            price_includes_gst=price_includes_gst,
+            is_interstate=is_interstate,
+        )
+
+        total_taxable += breakdown['taxable_value']
+        total_cgst += breakdown['cgst_amount']
+        total_sgst += breakdown['sgst_amount']
+        total_igst += breakdown['igst_amount']
+        total_cess += breakdown['cess_amount']
+
+        processed_items.append({
+            'product': product_obj,
+            'name': name,
+            'hsn': hsn,
+            'qty': qty,
+            'unit_price': unit_price,
+            'tax_category': tax_category,
+            'gst_rate': gst_rate,
+            'cess_rate': cess_rate,
+            'price_includes_gst': price_includes_gst,
+            'breakdown': breakdown,
+        })
+
+
+        if product_obj and product_obj.stock >= qty:
+            product_obj.stock -= qty
+            product_obj.save()
+
+    total_tax = total_cgst + total_sgst + total_igst + total_cess
+    unrounded_total = total_taxable + total_tax
+    rounded_grand_total = round_to_rupee(unrounded_total)
+    round_off = rounded_grand_total - unrounded_total
+
+    invoice = Invoice.objects.create(
+        distributor=request.user,
+        customer=customer,
+        customer_name=customer_name,
+        invoice_number=invoice_number,
+        invoice_date=timezone.now().date(),
+        due_date=due_date,
+        place_of_supply=place_of_supply,
+        is_interstate=is_interstate,
+        taxable_amount=round_currency(total_taxable),
+        cgst_amount=round_currency(total_cgst),
+        sgst_amount=round_currency(total_sgst),
+        igst_amount=round_currency(total_igst),
+        cess_amount=round_currency(total_cess),
+        total_tax=round_currency(total_tax),
+        round_off=round_currency(round_off),
+        grand_total=rounded_grand_total,
+        status='pending',
+        notes=notes,
+    )
+
+    for pi in processed_items:
+        b = pi['breakdown']
+        InvoiceItem.objects.create(
+            invoice=invoice,
+            product=pi['product'],
+            product_name=pi['name'],
+            hsn_code=pi['hsn'],
+            quantity=pi['qty'],
+            unit_price=pi['unit_price'],
+            tax_category=pi['tax_category'],
+            gst_rate=pi['gst_rate'],
+            cess_rate=pi['cess_rate'],
+            price_includes_gst=pi['price_includes_gst'],
+            taxable_value=b['taxable_value'],
+            cgst_amount=b['cgst_amount'],
+            sgst_amount=b['sgst_amount'],
+            igst_amount=b['igst_amount'],
+            cess_amount=b['cess_amount'],
+            total_amount=b['total_amount'],
+        )
+
+    return JsonResponse({
+        'success': True,
+        'invoice_number': invoice.invoice_number,
+        'grand_total': str(invoice.grand_total),
+        'taxable_amount': str(invoice.taxable_amount),
+        'total_tax': str(invoice.total_tax),
+        'message': f'Invoice {invoice.invoice_number} generated successfully.',
+    })
+

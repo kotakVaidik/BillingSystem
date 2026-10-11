@@ -6,13 +6,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Create a new distributor account for Billing System — manage your orders and invoices." />
   <title>Distributor Registration — Billing System</title>
-
-  <!-- Google Fonts: Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-
-  <!-- Shared Login Stylesheet -->
   <link rel="stylesheet" href="{% static 'css/login.css' %}" />
 </head>
 <body>
@@ -21,8 +17,6 @@
 
   <main class="form-panel">
     <div class="form-container form-container--wide">
-
-      <!-- Role Badge -->
       <div class="role-badge role-badge--distributor" aria-label="Role: Distributor">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <rect x="1" y="3" width="15" height="13" rx="1"/>
@@ -32,14 +26,10 @@
         </svg>
         Distributor Portal
       </div>
-
-      <!-- Heading -->
       <h2 class="form-heading">Create Your Account</h2>
       <p class="form-subheading">Register as a distributor to access your billing dashboard.</p>
 
       <div class="form-divider" aria-hidden="true"></div>
-
-      <!-- Django Messages -->
       {% if messages %}
         {% for message in messages %}
           {% if message.tags == 'error' %}
@@ -62,8 +52,6 @@
           {% endif %}
         {% endfor %}
       {% endif %}
-
-      <!-- Registration Form -->
       <form
         id="registerForm"
         method="POST"
@@ -74,10 +62,7 @@
         {% csrf_token %}
 
         <div class="auth-form">
-
-          <!-- Full Name & Phone Row -->
           <div class="form-row-2">
-            <!-- Full Name -->
             <div class="field-group">
               <label class="field-label" for="id_full_name">
                 Full Name <span class="required" aria-hidden="true">*</span>
@@ -111,8 +96,6 @@
                 <span></span>
               </span>
             </div>
-
-            <!-- Phone Number -->
             <div class="field-group">
               <label class="field-label" for="id_phone">
                 Phone Number <span class="required" aria-hidden="true">*</span>
@@ -146,8 +129,6 @@
               </span>
             </div>
           </div>
-
-          <!-- Email -->
           <div class="field-group">
             <label class="field-label" for="id_email">
               Email Address <span class="required" aria-hidden="true">*</span>
@@ -181,10 +162,7 @@
               <span></span>
             </span>
           </div>
-
-          <!-- Password & Confirm Password Row -->
           <div class="form-row-2">
-            <!-- Password -->
             <div class="field-group">
               <label class="field-label" for="id_password">
                 Password <span class="required" aria-hidden="true">*</span>
@@ -224,8 +202,6 @@
                 <span></span>
               </span>
             </div>
-
-            <!-- Confirm Password -->
             <div class="field-group">
               <label class="field-label" for="id_confirm_password">
                 Confirm Password <span class="required" aria-hidden="true">*</span>
@@ -266,13 +242,9 @@
               </span>
             </div>
           </div>
-
-          <!-- Password Rules Hint -->
           <div class="password-rules" aria-label="Password requirements">
             Password must be at least 8 characters and include uppercase, lowercase, a number, and a special character.
           </div>
-
-          <!-- Submit Button -->
           <button type="submit" class="btn-primary btn-primary--distributor" id="btn-register">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
@@ -285,8 +257,6 @@
 
         </div>
       </form>
-
-      <!-- Already have an account? -->
       <div class="role-switch">
         Already have an account?
         <a href="{% url 'distributor_login' %}">Sign in here</a>

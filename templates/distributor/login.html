@@ -6,24 +6,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Distributor login for Billing System — access your distributor account and manage your orders." />
   <title>Distributor Login — Billing System</title>
-
-  <!-- Google Fonts: Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-
-  <!-- Shared Login Stylesheet -->
   <link rel="stylesheet" href="{% static 'css/login.css' %}" />
 </head>
 <body>
 
 <div class="login-page">
-
-  <!-- Main Login Panel -->
   <main class="form-panel">
     <div class="form-container">
-
-      <!-- Role Badge -->
       <div class="role-badge role-badge--distributor" aria-label="Role: Distributor">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <rect x="1" y="3" width="15" height="13" rx="1"/>
@@ -33,14 +25,10 @@
         </svg>
         Distributor Portal
       </div>
-
-      <!-- Heading -->
       <h2 class="form-heading">Welcome Back, Distributor</h2>
       <p class="form-subheading">Sign in to access your distributor account.</p>
 
       <div class="form-divider" aria-hidden="true"></div>
-
-      <!-- Django Messages / Server Errors -->
       {% if messages %}
         {% for message in messages %}
           {% if message.tags == 'error' %}
@@ -74,14 +62,10 @@
           {{ form.non_field_errors|join:", " }}
         </div>
       {% endif %}
-
-      <!-- Login Form -->
       <form id="loginForm" method="POST" action="" novalidate autocomplete="on">
         {% csrf_token %}
 
         <div class="login-form">
-
-          <!-- Email / Username Field -->
           <div class="field-group">
             <label class="field-label" for="id_email">
               Email Address <span class="required" aria-hidden="true">*</span>
@@ -115,8 +99,6 @@
               <span></span>
             </span>
           </div>
-
-          <!-- Password Field -->
           <div class="field-group">
             <label class="field-label" for="id_password">
               Password <span class="required" aria-hidden="true">*</span>
@@ -156,8 +138,6 @@
               <span></span>
             </span>
           </div>
-
-          <!-- Remember Me + Forgot Password -->
           <div class="form-options">
             <label class="checkbox-label" for="id_remember_me">
               <input
@@ -171,8 +151,6 @@
               Forgot password?
             </a>
           </div>
-
-          <!-- Submit Button -->
           <button type="submit" class="btn-primary btn-primary--distributor" id="btn-distributor-signin">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
@@ -184,8 +162,6 @@
 
         </div>
       </form>
-
-      <!-- Role Switch & Registration Links -->
       <div class="role-switch">
         Don't have an account?
         <a href="{% url 'distributor_register' %}">Register here</a>

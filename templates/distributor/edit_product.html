@@ -1,0 +1,533 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Edit Product — Advance Billing System with QR" />
+  <title>Edit Product — Billing System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}" />
+  <link rel="stylesheet" href="{% static 'css/login.css' %}" />
+  <style>
+    .form-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 640px) {
+      .form-grid-2 { grid-template-columns: 1fr; }
+    }
+    .tax-preview-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 20px;
+    }
+    .tax-preview-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #475569;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .tax-preview-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      padding: 4px 0;
+      color: #334155;
+    }
+    .tax-preview-row.total-row {
+      border-top: 1px dashed #cbd5e1;
+      margin-top: 6px;
+      padding-top: 8px;
+      font-weight: 700;
+      font-size: 14.5px;
+      color: #0f172a;
+    }
+    .hsn-status-badge {
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      margin-top: 6px;
+      display: none;
+      align-items: center;
+      gap: 6px;
+    }
+    .hsn-status-badge--success {
+      background: #f0fdf4;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+    }
+    .hsn-status-badge--warning {
+      background: #fffbeb;
+      color: #92400e;
+      border: 1px solid #fde68a;
+    }
+    .field-hint {
+      font-size: 11.5px;
+      color: #64748b;
+      margin-top: 4px;
+    }
+    .field-error-msg {
+      color: #dc2626;
+      font-size: 12px;
+      margin-top: 4px;
+      display: none;
+    }
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13.5px;
+      font-weight: 500;
+      color: #1e293b;
+      cursor: pointer;
+      user-select: none;
+    }
+  </style>
+</head>
+<body>
+<nav class="dash-nav" role="navigation" aria-label="Main navigation">
+  <a href="{% url 'distributor_dashboard' %}" class="dash-nav-brand">
+    <div class="dash-nav-icon">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/>
+        <line x1="16" y1="17" x2="8" y2="17"/>
+      </svg>
+    </div>
+    <span class="dash-nav-name">Billing <span>System</span></span>
+  </a>
+
+  <div class="dash-nav-divider" aria-hidden="true"></div>
+
+  <div class="dash-nav-role">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+    Distributor
+  </div>
+
+  <div class="dash-nav-divider" aria-hidden="true"></div>
+
+  <div class="dash-nav-links">
+    <a href="{% url 'distributor_dashboard' %}" class="dash-nav-link">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Dashboard
+    </a>
+    <a href="{% url 'product_list' %}" class="dash-nav-link dash-nav-link--active">
+      <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+      Products
+    </a>
+    <a href="{% url 'customer_list' %}" class="dash-nav-link">
+      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Customers
+    </a>
+    <a href="{% url 'distributor_profile' %}" class="dash-nav-link">
+      <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Profile
+    </a>
+  </div>
+
+  <div class="dash-nav-spacer"></div>
+
+  <div class="dash-nav-user">
+    <div class="dash-nav-user-info">
+      <div class="dash-nav-user-name">{{ request.user.get_full_name|default:request.user.username }}</div>
+      <div class="dash-nav-user-role">Distributor Account</div>
+    </div>
+    <div class="dash-nav-avatar" aria-hidden="true">
+      {% with name=request.user.get_full_name|default:request.user.username %}
+        {{ name|slice:":1"|upper }}
+      {% endwith %}
+    </div>
+    <a href="{% url 'logout' %}" class="btn-signout" id="btn-signout">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sign Out
+    </a>
+  </div>
+</nav>
+<div class="dash-layout">
+  <main class="dash-content">
+
+    <header class="page-header">
+      <div class="page-header-top">
+        <div>
+          <h1 class="page-title">Edit Product: {{ product.name }}</h1>
+          <p class="page-subtitle">Update product information, inventory, HSN code, or tax rates.</p>
+        </div>
+        <div class="page-header-actions">
+          <a href="{% url 'product_list' %}" class="btn btn-ghost">
+            &larr; Back to Catalog
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <div class="card" style="max-width:760px; margin: 0 auto;">
+      <div class="card-header">
+        <div class="card-title">Edit Product Details</div>
+      </div>
+      <div class="card-body">
+
+        {% if messages %}
+          {% for message in messages %}
+            {% if message.tags == 'error' %}
+              <div class="form-error-banner" role="alert" style="margin-bottom: 20px;">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                {{ message }}
+              </div>
+            {% endif %}
+          {% endfor %}
+        {% endif %}
+
+        <form method="POST" action="{% url 'edit_product' product.id %}" id="editProductForm" novalidate>
+          {% csrf_token %}
+          <div class="auth-form">
+            <div class="field-group">
+              <label class="field-label" for="id_name">Product Name <span class="required">*</span></label>
+              <div class="input-wrapper">
+                <span class="input-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                </span>
+                <input
+                  type="text"
+                  id="id_name"
+                  name="name"
+                  class="field-input"
+                  value="{{ name_value|default:'' }}"
+                  required
+                />
+              </div>
+              <div class="field-error-msg" id="nameError">Product name cannot be empty.</div>
+            </div>
+            <div class="form-grid-2">
+              <div class="field-group">
+                <label class="field-label" for="id_category">Category <span class="required">*</span></label>
+                <div class="input-wrapper">
+                  <span class="input-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                  </span>
+                  <input
+                    type="text"
+                    id="id_category"
+                    name="category"
+                    list="category_suggestions"
+                    class="field-input"
+                    value="{{ category_value|default:'' }}"
+                    required
+                  />
+                  <datalist id="category_suggestions">
+                    <option value="Grocery">
+                    <option value="Grains & Pulses">
+                    <option value="Edible Oils">
+                    <option value="Dairy Products">
+                    <option value="Beverages">
+                    <option value="Bakery & Confectionery">
+                    <option value="Personal Care">
+                    <option value="Pharmaceuticals">
+                    <option value="Electronics & IT">
+                    <option value="Apparel & Textiles">
+                    <option value="Stationery">
+                    <option value="Hardware">
+                  </datalist>
+                </div>
+                <div class="field-error-msg" id="categoryError">Category is required.</div>
+              </div>
+
+              <div class="field-group">
+                <label class="field-label" for="id_hsn_code">HSN Code <span class="required">*</span></label>
+                <div class="input-wrapper">
+                  <span class="input-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+                  </span>
+                  <input
+                    type="text"
+                    id="id_hsn_code"
+                    name="hsn_code"
+                    class="field-input"
+                    value="{{ hsn_code_value|default:'' }}"
+                    pattern="[0-9]{2,8}"
+                    required
+                  />
+                </div>
+                <div class="field-hint">2 to 8 numeric digits as per Indian GST rules.</div>
+                <div class="hsn-status-badge" id="hsnStatus"></div>
+                <div class="field-error-msg" id="hsnError">Enter a valid 2 to 8 digit numeric HSN code.</div>
+              </div>
+            </div>
+            <div class="form-grid-2">
+              <div class="field-group">
+                <label class="field-label" for="id_price">Unit Price (₹) <span class="required">*</span></label>
+                <div class="input-wrapper">
+                  <span class="input-icon" aria-hidden="true" style="font-weight:700; font-size:14px;">₹</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    id="id_price"
+                    name="price"
+                    class="field-input"
+                    value="{{ price_value|default:'' }}"
+                    required
+                  />
+                </div>
+                <div class="field-error-msg" id="priceError">Price must be greater than zero.</div>
+              </div>
+
+              <div class="field-group">
+                <label class="field-label" for="id_stock">Current Stock Quantity <span class="required">*</span></label>
+                <div class="input-wrapper">
+                  <span class="input-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                  </span>
+                  <input
+                    type="number"
+                    step="1"
+                    min="0"
+                    id="id_stock"
+                    name="stock"
+                    class="field-input"
+                    value="{{ stock_value|default:'0' }}"
+                    required
+                  />
+                </div>
+                <div class="field-error-msg" id="stockError">Stock must be 0 or a positive whole number.</div>
+              </div>
+            </div>
+            <div class="field-group" style="margin-top:-6px;">
+              <label class="checkbox-label" for="id_price_includes_gst">
+                <input
+                  type="checkbox"
+                  id="id_price_includes_gst"
+                  name="price_includes_gst"
+                  {% if price_includes_gst_value %}checked{% endif %}
+                  style="width:16px; height:16px; accent-color: #2563eb;"
+                />
+                <span>Stored unit price is GST-inclusive (tax is extracted from price)</span>
+              </label>
+            </div>
+            <div class="form-grid-2">
+              <div class="field-group">
+                <label class="field-label" for="id_tax_category">GST Tax Classification <span class="required">*</span></label>
+                <div class="input-wrapper">
+                  <select id="id_tax_category" name="tax_category" class="field-input" style="padding-left:14px; appearance:auto;">
+                    {% for key, label in tax_categories %}
+                      <option value="{{ key }}" {% if tax_category_value == key %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
+
+              <div class="field-group">
+                <label class="field-label" for="id_gst_rate">Applicable GST Rate (%) <span class="required">*</span></label>
+                <div class="input-wrapper">
+                  <select id="id_gst_rate" name="gst_rate" class="field-input" style="padding-left:14px; appearance:auto;">
+                    {% for rate in valid_gst_rates %}
+                      <option value="{{ rate }}" {% if gst_rate_value == rate %}selected{% endif %}>{{ rate }}% GST</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="field-hint" id="rateHint">Official CBIC rate slab under Notification 1/2017-CT(Rate).</div>
+              </div>
+            </div>
+            <div class="field-group">
+              <label class="field-label" for="id_cess_rate">Compensation Cess (%)</label>
+              <div class="input-wrapper" style="max-width:320px;">
+                <span class="input-icon" aria-hidden="true">%</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  id="id_cess_rate"
+                  name="cess_rate"
+                  class="field-input"
+                  value="{{ cess_rate_value|default:'0.00' }}"
+                />
+              </div>
+            </div>
+            <div class="field-group">
+              <label class="field-label" for="id_description">Product Description</label>
+              <textarea
+                id="id_description"
+                name="description"
+                class="field-input"
+                style="height:70px; padding:10px 14px;"
+              >{{ description_value|default:'' }}</textarea>
+            </div>
+            <div class="tax-preview-box" id="taxPreviewBox">
+              <div class="tax-preview-title">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                Per-Unit GST Tax Calculation Preview
+              </div>
+              <div class="tax-preview-row">
+                <span>Taxable Value (Base Price):</span>
+                <span id="prevTaxable">₹0.00</span>
+              </div>
+              <div class="tax-preview-row">
+                <span id="prevCgstLabel">CGST (Intra-state):</span>
+                <span id="prevCgst">₹0.00</span>
+              </div>
+              <div class="tax-preview-row">
+                <span id="prevSgstLabel">SGST / UTGST (Intra-state):</span>
+                <span id="prevSgst">₹0.00</span>
+              </div>
+              <div class="tax-preview-row" id="prevCessRow" style="display:none;">
+                <span>Compensation Cess:</span>
+                <span id="prevCess">₹0.00</span>
+              </div>
+              <div class="tax-preview-row total-row">
+                <span>Total Unit Selling Price:</span>
+                <span id="prevTotal">₹0.00</span>
+              </div>
+            </div>
+
+            <div class="field-group" style="margin-top:24px;">
+              <button type="submit" class="btn btn-primary btn-block btn-primary--dist" id="submitBtn">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                Update Product
+              </button>
+            </div>
+
+          </div>
+        </form>
+
+      </div>
+    </div>
+
+    <footer class="dash-footer">
+      &copy; {% now "Y" %} Billing System &mdash; All rights reserved.
+    </footer>
+
+  </main>
+</div>
+
+<script>
+  const priceInput = document.getElementById('id_price');
+  const stockInput = document.getElementById('id_stock');
+  const hsnInput = document.getElementById('id_hsn_code');
+  const nameInput = document.getElementById('id_name');
+  const categoryInput = document.getElementById('id_category');
+  const taxCatSelect = document.getElementById('id_tax_category');
+  const gstRateSelect = document.getElementById('id_gst_rate');
+  const cessInput = document.getElementById('id_cess_rate');
+  const inclGstCheckbox = document.getElementById('id_price_includes_gst');
+  const hsnStatus = document.getElementById('hsnStatus');
+  const form = document.getElementById('editProductForm');
+  const submitBtn = document.getElementById('submitBtn');
+
+  let hsnTimeout = null;
+  function lookupHSN() {
+    const hsn = hsnInput.value.trim().replace(/\D/g, '');
+    if (hsn.length < 2) {
+      hsnStatus.style.display = 'none';
+      return;
+    }
+
+    fetch('/api/hsn-lookup/?hsn=' + encodeURIComponent(hsn))
+      .then(res => res.json())
+      .then(data => {
+        hsnStatus.style.display = 'flex';
+        if (data.is_verified) {
+          hsnStatus.className = 'hsn-status-badge hsn-status-badge--success';
+          hsnStatus.innerHTML = `✓ Verified HSN (${data.hsn_code}): ${data.description} &bull; <strong>${data.notification}</strong>`;
+        } else {
+          hsnStatus.className = 'hsn-status-badge hsn-status-badge--warning';
+          hsnStatus.innerHTML = `⚠️ Custom/Unverified HSN: ${data.message}`;
+        }
+        updateTaxPreview();
+      })
+      .catch(() => {
+        hsnStatus.style.display = 'none';
+      });
+  }
+
+  hsnInput.addEventListener('input', () => {
+    clearTimeout(hsnTimeout);
+    hsnTimeout = setTimeout(lookupHSN, 350);
+  });
+
+  function handleTaxCategoryChange() {
+    const cat = taxCatSelect.value;
+    if (cat === 'EXEMPT' || cat === 'NIL_RATED' || cat === 'NON_GST') {
+      gstRateSelect.value = '0.00';
+      gstRateSelect.disabled = true;
+      cessInput.value = '0.00';
+      cessInput.disabled = true;
+    } else {
+      gstRateSelect.disabled = false;
+      cessInput.disabled = false;
+    }
+    updateTaxPreview();
+  }
+
+  taxCatSelect.addEventListener('change', handleTaxCategoryChange);
+  gstRateSelect.addEventListener('change', updateTaxPreview);
+  priceInput.addEventListener('input', updateTaxPreview);
+  cessInput.addEventListener('input', updateTaxPreview);
+  inclGstCheckbox.addEventListener('change', updateTaxPreview);
+
+  function updateTaxPreview() {
+    const rawPrice = parseFloat(priceInput.value) || 0;
+    const isInclusive = inclGstCheckbox.checked;
+    const taxCat = taxCatSelect.value;
+    let gstRate = parseFloat(gstRateSelect.value) || 0;
+    let cessRate = parseFloat(cessInput.value) || 0;
+
+    if (taxCat !== 'TAXABLE') {
+      gstRate = 0;
+      cessRate = 0;
+    }
+
+    let taxable = rawPrice;
+    const totalTaxPercent = gstRate + cessRate;
+
+    if (isInclusive && totalTaxPercent > 0) {
+      taxable = rawPrice / (1 + (totalTaxPercent / 100));
+    }
+
+    const cgstAmount = taxable * (gstRate / 200);
+    const sgstAmount = taxable * (gstRate / 200);
+    const cessAmount = taxable * (cessRate / 100);
+    const total = taxable + cgstAmount + sgstAmount + cessAmount;
+
+    document.getElementById('prevTaxable').textContent = '₹' + taxable.toFixed(2);
+    document.getElementById('prevCgstLabel').textContent = `CGST (${(gstRate/2).toFixed(2)}%):`;
+    document.getElementById('prevCgst').textContent = '₹' + cgstAmount.toFixed(2);
+    document.getElementById('prevSgstLabel').textContent = `SGST / UTGST (${(gstRate/2).toFixed(2)}%):`;
+    document.getElementById('prevSgst').textContent = '₹' + sgstAmount.toFixed(2);
+
+    const cessRow = document.getElementById('prevCessRow');
+    if (cessRate > 0) {
+      cessRow.style.display = 'flex';
+      document.getElementById('prevCess').textContent = '₹' + cessAmount.toFixed(2);
+    } else {
+      cessRow.style.display = 'none';
+    }
+
+    document.getElementById('prevTotal').textContent = '₹' + total.toFixed(2);
+  }
+
+  form.addEventListener('submit', function(e) {
+    gstRateSelect.disabled = false;
+    cessInput.disabled = false;
+  });
+
+  document.addEventListener('DOMContentLoaded', () => {
+    handleTaxCategoryChange();
+    if (hsnInput.value.trim()) {
+      lookupHSN();
+    }
+  });
+</script>
+
+</body>
+</html>
