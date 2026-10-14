@@ -267,6 +267,14 @@ class Invoice(models.Model):
     def __str__(self):
         return f"{self.invoice_number} — {self.customer_name or (self.customer.name if self.customer else 'Cash')} — ₹{self.grand_total}"
 
+    @property
+    def subtotal(self):
+        return self.taxable_amount
+
+    @property
+    def final_total(self):
+        return self.grand_total
+
 
 class InvoiceItem(models.Model):
     """
@@ -278,18 +286,50 @@ class InvoiceItem(models.Model):
     product            = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True, blank=True, related_name='invoice_items')
     product_name       = models.CharField(max_length=200)
     hsn_code           = models.CharField(max_length=10, blank=True)
-    quantity           = models.IntegerField(default=1)
-    unit_price         = models.DecimalField(max_digits=12, decimal_places=2)
+    quantity           = models.IntegerField(default=1, validators=[MinValueValidator(1)])
+    unit_price         = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))],
+    )
     tax_category       = models.CharField(max_length=20, default=TAX_CATEGORY_TAXABLE)
     gst_rate           = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal('0.00'))
     cess_rate          = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal('0.00'))
     price_includes_gst = models.BooleanField(default=False)
-    taxable_value      = models.DecimalField(max_digits=12, decimal_places=2)
-    cgst_amount        = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
-    sgst_amount        = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
-    igst_amount        = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
-    cess_amount        = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
-    total_amount       = models.DecimalField(max_digits=12, decimal_places=2)
+    taxable_value      = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.00'))],
+    )
+    cgst_amount        = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        validators=[MinValueValidator(Decimal('0.00'))],
+    )
+    sgst_amount        = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        validators=[MinValueValidator(Decimal('0.00'))],
+    )
+    igst_amount        = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        validators=[MinValueValidator(Decimal('0.00'))],
+    )
+    cess_amount        = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        validators=[MinValueValidator(Decimal('0.00'))],
+    )
+    total_amount       = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.00'))],
+    )
 
     class Meta:
         verbose_name = 'Invoice Item'
@@ -298,4 +338,7 @@ class InvoiceItem(models.Model):
     def __str__(self):
         return f"{self.product_name} x {self.quantity} [₹{self.total_amount}]"
 
+    @property
+    def line_total(self):
+        return self.total_amount
 

@@ -1,18 +1,22 @@
 import json
 import re
 from decimal import Decimal, InvalidOperation
+from uuid import uuid4
 
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group, User
+from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
+from django.db import transaction
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 from .gst_utils import (
     TAX_CATEGORY_CHOICES,
@@ -1048,6 +1052,11 @@ def edit_product(request, product_id):
             messages.error(request, 'Cess rate must be 0 or positive.')
             return render(request, 'distributor/edit_product.html', context)
 
+        valid_cat_keys = [c[0] for c in TAX_CATEGORY_CHOICES]
+        if tax_category not in valid_cat_keys:
+            messages.error(request, 'Invalid tax category selected.')
+            return render(request, 'distributor/edit_product.html', context)
+
         if tax_category in ZERO_TAX_CATEGORIES:
             gst_rate = Decimal('0.00')
             cess_rate = Decimal('0.00')
@@ -1071,7 +1080,14 @@ def edit_product(request, product_id):
         product.cess_rate = cess_rate
         product.price_includes_gst = price_includes_gst
         product.description = description
-        product.save()
+        try:
+            product.full_clean()
+            product.save()
+        except ValidationError as exc:
+            for field_errors in exc.message_dict.values():
+                for error in field_errors:
+                    messages.error(request, error)
+            return render(request, 'distributor/edit_product.html', context)
 
         messages.success(request, f'Product "{name}" updated successfully.')
         return redirect('product_list')
@@ -1095,6 +1111,7 @@ def edit_product(request, product_id):
 
 
 @login_required(login_url='distributor_login')
+@require_POST
 def delete_product(request, product_id):
     is_distributor = request.user.groups.filter(name='Distributor').exists()
     if not (is_distributor or request.user.is_staff):
@@ -1106,12 +1123,9 @@ def delete_product(request, product_id):
     else:
         product = get_object_or_404(Product, id=product_id, distributor=request.user)
 
-    if request.method == 'POST':
-        product_name = product.name
-        product.delete()
-        messages.success(request, f'Product "{product_name}" removed from inventory.')
-        return redirect('product_list')
-
+    product_name = product.name
+    product.delete()
+    messages.success(request, f'Product "{product_name}" removed from inventory.')
     return redirect('product_list')
 
 
@@ -1158,130 +1172,141 @@ def api_save_invoice(request):
     if not items_data:
         return JsonResponse({'error': 'Invoice must contain at least one line item.'}, status=400)
 
-    customer = None
-    if customer_id:
-        try:
-            customer = Customer.objects.get(id=customer_id, distributor=request.user)
-            customer_name = customer.name
-        except Customer.DoesNotExist:
-            pass
+    try:
+        with transaction.atomic():
+            customer = None
+            if customer_id:
+                customer = Customer.objects.filter(
+                    id=customer_id,
+                    distributor=request.user,
+                ).first()
+                if customer is None:
+                    return JsonResponse({'error': 'Customer not found.'}, status=400)
+                customer_name = customer.name
 
-    if not customer_name:
-        customer_name = 'Cash Sale'
+            customer_name = customer_name or 'Cash Sale'
+            total_taxable = Decimal('0.00')
+            total_cgst = Decimal('0.00')
+            total_sgst = Decimal('0.00')
+            total_igst = Decimal('0.00')
+            total_cess = Decimal('0.00')
+            processed_items = []
 
+            for item in items_data:
+                try:
+                    prod_id = item.get('product_id')
+                    qty = int(item.get('qty', 1))
+                    unit_price = Decimal(str(item.get('rate', 0)))
+                    gst_rate = Decimal(str(item.get('gst_rate', 0)))
+                    cess_rate = Decimal(str(item.get('cess_rate', 0)))
+                except (InvalidOperation, TypeError, ValueError):
+                    return JsonResponse({'error': 'Each item must have valid quantity and price values.'}, status=400)
 
-    today_str = timezone.now().strftime('%Y%m')
-    random_suffix = User.objects.make_random_password(length=4, allowed_chars='0123456789')
-    invoice_number = f"INV-{today_str}-{random_suffix}"
+                if qty < 1 or unit_price <= 0 or gst_rate < 0 or cess_rate < 0:
+                    return JsonResponse({'error': 'Quantity must be positive and prices and tax rates cannot be negative.'}, status=400)
 
-    total_taxable = Decimal('0.00')
-    total_cgst = Decimal('0.00')
-    total_sgst = Decimal('0.00')
-    total_igst = Decimal('0.00')
-    total_cess = Decimal('0.00')
+                product_obj = None
+                if prod_id:
+                    product_obj = Product.objects.select_for_update().filter(
+                        Q(id=prod_id) & (Q(distributor=request.user) | Q(distributor__isnull=True))
+                    ).first()
+                    if product_obj is None:
+                        return JsonResponse({'error': 'Product not found or not accessible.'}, status=400)
+                    if product_obj.stock < qty:
+                        return JsonResponse({'error': f'Insufficient stock for {product_obj.name}.'}, status=400)
+                    name = product_obj.name
+                    hsn = product_obj.hsn_code
+                    unit_price = product_obj.price
+                    gst_rate = product_obj.gst_rate
+                    cess_rate = product_obj.cess_rate
+                    tax_category = product_obj.tax_category
+                    price_includes_gst = product_obj.price_includes_gst
+                else:
+                    name = str(item.get('name', '')).strip()
+                    hsn = str(item.get('hsn_code', '')).strip()
+                    tax_category = item.get('tax_category', TAX_CATEGORY_TAXABLE)
+                    price_includes_gst = bool(item.get('price_includes_gst', False))
+                    if not name:
+                        return JsonResponse({'error': 'Every invoice item needs a product name.'}, status=400)
 
-    processed_items = []
+                breakdown = calculate_gst_breakdown(
+                    price=unit_price,
+                    quantity=Decimal(str(qty)),
+                    gst_rate=gst_rate,
+                    cess_rate=cess_rate,
+                    tax_category=tax_category,
+                    price_includes_gst=price_includes_gst,
+                    is_interstate=is_interstate,
+                )
+                total_taxable += breakdown['taxable_value']
+                total_cgst += breakdown['cgst_amount']
+                total_sgst += breakdown['sgst_amount']
+                total_igst += breakdown['igst_amount']
+                total_cess += breakdown['cess_amount']
+                processed_items.append({
+                    'product': product_obj,
+                    'name': name,
+                    'hsn': hsn,
+                    'qty': qty,
+                    'unit_price': unit_price,
+                    'tax_category': tax_category,
+                    'gst_rate': gst_rate,
+                    'cess_rate': cess_rate,
+                    'price_includes_gst': price_includes_gst,
+                    'breakdown': breakdown,
+                })
 
-    for item in items_data:
-        prod_id = item.get('product_id')
-        name = item.get('name', 'Item').strip()
-        hsn = item.get('hsn_code', '').strip()
-        qty = int(item.get('qty', 1))
-        unit_price = Decimal(str(item.get('rate', 0)))
-        gst_rate = Decimal(str(item.get('gst_rate', 0)))
-        cess_rate = Decimal(str(item.get('cess_rate', 0)))
-        tax_category = item.get('tax_category', TAX_CATEGORY_TAXABLE)
-        price_includes_gst = bool(item.get('price_includes_gst', False))
+            total_tax = total_cgst + total_sgst + total_igst + total_cess
+            unrounded_total = total_taxable + total_tax
+            rounded_grand_total = round_to_rupee(unrounded_total)
+            round_off = rounded_grand_total - unrounded_total
+            invoice_number = f"INV-{timezone.now():%Y%m}-{uuid4().hex[:8].upper()}"
+            invoice = Invoice.objects.create(
+                distributor=request.user,
+                customer=customer,
+                customer_name=customer_name,
+                invoice_number=invoice_number,
+                invoice_date=timezone.now().date(),
+                due_date=due_date,
+                place_of_supply=place_of_supply,
+                is_interstate=is_interstate,
+                taxable_amount=round_currency(total_taxable),
+                cgst_amount=round_currency(total_cgst),
+                sgst_amount=round_currency(total_sgst),
+                igst_amount=round_currency(total_igst),
+                cess_amount=round_currency(total_cess),
+                total_tax=round_currency(total_tax),
+                round_off=round_currency(round_off),
+                grand_total=rounded_grand_total,
+                status='pending',
+                notes=notes,
+            )
 
-        product_obj = None
-        if prod_id:
-            try:
-                product_obj = Product.objects.get(id=prod_id)
-                name = product_obj.name
-                hsn = product_obj.hsn_code
-            except Product.DoesNotExist:
-                pass
-
-        breakdown = calculate_gst_breakdown(
-            price=unit_price,
-            quantity=Decimal(str(qty)),
-            gst_rate=gst_rate,
-            cess_rate=cess_rate,
-            tax_category=tax_category,
-            price_includes_gst=price_includes_gst,
-            is_interstate=is_interstate,
-        )
-
-        total_taxable += breakdown['taxable_value']
-        total_cgst += breakdown['cgst_amount']
-        total_sgst += breakdown['sgst_amount']
-        total_igst += breakdown['igst_amount']
-        total_cess += breakdown['cess_amount']
-
-        processed_items.append({
-            'product': product_obj,
-            'name': name,
-            'hsn': hsn,
-            'qty': qty,
-            'unit_price': unit_price,
-            'tax_category': tax_category,
-            'gst_rate': gst_rate,
-            'cess_rate': cess_rate,
-            'price_includes_gst': price_includes_gst,
-            'breakdown': breakdown,
-        })
-
-
-        if product_obj and product_obj.stock >= qty:
-            product_obj.stock -= qty
-            product_obj.save()
-
-    total_tax = total_cgst + total_sgst + total_igst + total_cess
-    unrounded_total = total_taxable + total_tax
-    rounded_grand_total = round_to_rupee(unrounded_total)
-    round_off = rounded_grand_total - unrounded_total
-
-    invoice = Invoice.objects.create(
-        distributor=request.user,
-        customer=customer,
-        customer_name=customer_name,
-        invoice_number=invoice_number,
-        invoice_date=timezone.now().date(),
-        due_date=due_date,
-        place_of_supply=place_of_supply,
-        is_interstate=is_interstate,
-        taxable_amount=round_currency(total_taxable),
-        cgst_amount=round_currency(total_cgst),
-        sgst_amount=round_currency(total_sgst),
-        igst_amount=round_currency(total_igst),
-        cess_amount=round_currency(total_cess),
-        total_tax=round_currency(total_tax),
-        round_off=round_currency(round_off),
-        grand_total=rounded_grand_total,
-        status='pending',
-        notes=notes,
-    )
-
-    for pi in processed_items:
-        b = pi['breakdown']
-        InvoiceItem.objects.create(
-            invoice=invoice,
-            product=pi['product'],
-            product_name=pi['name'],
-            hsn_code=pi['hsn'],
-            quantity=pi['qty'],
-            unit_price=pi['unit_price'],
-            tax_category=pi['tax_category'],
-            gst_rate=pi['gst_rate'],
-            cess_rate=pi['cess_rate'],
-            price_includes_gst=pi['price_includes_gst'],
-            taxable_value=b['taxable_value'],
-            cgst_amount=b['cgst_amount'],
-            sgst_amount=b['sgst_amount'],
-            igst_amount=b['igst_amount'],
-            cess_amount=b['cess_amount'],
-            total_amount=b['total_amount'],
-        )
+            for pi in processed_items:
+                b = pi['breakdown']
+                if pi['product'] is not None:
+                    pi['product'].stock -= pi['qty']
+                    pi['product'].save(update_fields=['stock', 'updated_at'])
+                InvoiceItem.objects.create(
+                    invoice=invoice,
+                    product=pi['product'],
+                    product_name=pi['name'],
+                    hsn_code=pi['hsn'],
+                    quantity=pi['qty'],
+                    unit_price=pi['unit_price'],
+                    tax_category=pi['tax_category'],
+                    gst_rate=pi['gst_rate'],
+                    cess_rate=pi['cess_rate'],
+                    price_includes_gst=pi['price_includes_gst'],
+                    taxable_value=b['taxable_value'],
+                    cgst_amount=b['cgst_amount'],
+                    sgst_amount=b['sgst_amount'],
+                    igst_amount=b['igst_amount'],
+                    cess_amount=b['cess_amount'],
+                    total_amount=b['total_amount'],
+                )
+    except (InvalidOperation, TypeError, ValueError):
+        return JsonResponse({'error': 'Invoice contains invalid numeric or tax values.'}, status=400)
 
     return JsonResponse({
         'success': True,
@@ -1291,4 +1316,3 @@ def api_save_invoice(request):
         'total_tax': str(invoice.total_tax),
         'message': f'Invoice {invoice.invoice_number} generated successfully.',
     })
-
